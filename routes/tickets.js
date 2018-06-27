@@ -1,13 +1,15 @@
-var express = require('express');
-var router = express.Router();
+var express = require('express')
+  , bodyParser = require('body-parser')
+  , _ = require('underscore')
+  , moment = require('moment');
+
+var router = express.Router()
 var MongoClient = require('mongodb').MongoClient
-var db
-var bodyParser = require('body-parser');
 router.use(bodyParser.urlencoded({ extended: true }));
 
 function db(callback){
   MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
-    db = client.db('keno_express_api')
+    var db = client.db('keno_express_api')
     callback(db);
   })
 }
@@ -113,10 +115,9 @@ router.get('/tickets', function(req, res) {
  *          dataType: string
  */
 router.post('/tickets', function(req, res) {
-  new_round = {starts_at: req.query.starts_at }
-
+  ticket = _.extend(req.query, {created_at: moment().format()});
   db(function(db){
-    db.collection('tickets').save(new_round, function(err, result) {
+    db.collection('tickets').save(ticket, function(err, result) {
       if (err) return console.log(err)
       res.json(result);
     });
@@ -164,9 +165,4 @@ module.exports = router;
  *       created_at: 
  *         type: String
  *         format: date-time
- *         required: true
- *       updated_at: 
- *         type: String
- *         format: date-time
- *         required: true
  */
