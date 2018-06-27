@@ -2,10 +2,19 @@ var express = require('express');
 var router = express.Router();
 var MongoClient = require('mongodb').MongoClient
 var db
+var bodyParser = require('body-parser');
+router.use(bodyParser.urlencoded({ extended: true }));
+
+function db(callback){
+  MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
+    db = client.db('keno_express_api')
+    callback(db);
+  })
+}
 
 /**
  * @swagger
- * resourcePath: /api
+ * resourcePath: /rounds
  * description: All about API
  *
  */
@@ -16,7 +25,7 @@ var db
  * operations:
  *   -  httpMethod: GET
  *      summary: List rounds
- *      notes: Returns a list of all rounds
+ *      notes: Returns a list of rounds
  *      responseClass: Round
  *      nickname: rounds
  *      consumes: 
@@ -32,13 +41,12 @@ var db
  *          format: date
  *          paramType: query
  */           
-app.get('/rounds', function(req, res) {
-  MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
-    db = client.db('keno_express_api')
-    db.collection('quotes').find().toArray(function(err, results) {
+router.get('/rounds', function(req, res) {
+  db(function(db){
+    db.collection('rounds').find().toArray(function(err, results) {
       res.json(results);
-    })
-  })
+    });
+  });
 })
 
 /**
@@ -53,23 +61,26 @@ app.get('/rounds', function(req, res) {
  *      consumes: 
  *        - text/html
  *      parameters:
- *        - name: start_at
+ *        - name: starts_at
  *          description: >
  *            Start date of next game, e.g {starts_at:'2018-06-26'}
- *          paramType: body
+ *          paramType: query
  *          required: true
- *          dataType: object
- */        
-app.post('/rounds', function(req, res) {
-  res.json(req.body);
-  // db.collection('rounds').save(req.body, function(err, result) {
-  //   if (err) return console.log(err)
-  //   res.json(result);
-  // })
+ *          dataType: string
+ */
+router.post('/rounds', function(req, res) {
+  new_round = {starts_at: req.query.starts_at }
+
+  db(function(db){
+    db.collection('rounds').save(new_round, function(err, result) {
+      if (err) return console.log(err)
+      res.json(result);
+    });
+  });
 })
 
 // DELETE
-app.delete('/rounds/:id', function(req, res) {
+router.delete('/rounds/:id', function(req, res) {
   res.json('TODO DELETE');
 })
 

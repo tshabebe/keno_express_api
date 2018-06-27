@@ -33,7 +33,8 @@
     "yml",
     "yaml",
     "coffee-script",
-    "restful"
+    "restful",
+    "mongodb"
   ],
   "repository": "git://github.com/altherlex/keno_express_api"
 }

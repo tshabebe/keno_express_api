@@ -6,7 +6,10 @@ var createError = require('http-errors')
 
   , indexRouter = require('./routes/index')
   , usersRouter = require('./routes/users')
+  , roundsRouter = require('./routes/rounds')
+  , ticketsRouter = require('./routes/tickets')
 
+  , bodyParser = require('body-parser')
   , swagger = require('./')
   , app = express();
 
@@ -26,6 +29,8 @@ app.all('/*', function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   next();
 });
+app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.json())
 
 // catch 404 and forward to error handler
 // app.use(function(req, res, next) {
@@ -39,9 +44,14 @@ app.use(swagger.init(app, {
   swaggerURL: '/swagger',
   swaggerJSON: '/api-docs.json',
   swaggerUI: './app/public/swagger/',
-  apis: ['routes/rounds.js']
+  apis: ['routes/rounds.js', 'routes/tickets.js']
 }));
 
+app.use(bodyParser.json()); // support json encoded bodies
+app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+
+app.use('/', roundsRouter);
+app.use('/', ticketsRouter);
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
