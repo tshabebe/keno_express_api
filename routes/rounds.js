@@ -2,15 +2,9 @@ var express = require('express')
   , bodyParser = require('body-parser')
   , _ = require('underscore')
   , db = require('../lib/db')
+  , helper = require('../lib/helper')
   , moment = require('moment');
-
-var router = express.Router()
-router.use(bodyParser.urlencoded({ extended: true }));
-
-function parse_date(string){
-  if (!moment(string).isValid()) return false
-  return moment(string+' 00:00:00.000') //.format('YYYY-MM-DD')
-}
+var router = express.Router();
 
 /**
  * @swagger
@@ -30,16 +24,6 @@ function parse_date(string){
  *      nickname: rounds
  *      consumes: 
  *        - text/html
- *      parameters:
- *        - name: current
- *          description: Check the current round
- *          dataType: boolean
- *          paramType: query
- *        - name: period
- *          description: Search for a speficif date. e.g. 2018-06-26
- *          dataType: string
- *          format: date
- *          paramType: query
  */           
 router.get('/rounds', function(req, res) {
   db.conn(function(db){
@@ -62,7 +46,7 @@ router.get('/rounds', function(req, res) {
  *        - text/html
  *      parameters:
  *        - name: starts_at
- *          description: Start date of next game, e.g {starts_at:'2018-06-26'}
+ *          description: Game start. e.g 2018-06-26
  *          paramType: query
  *          required: true
  *          dataType: string
@@ -72,7 +56,7 @@ router.post('/rounds', function(req, res) {
   if (! moment(round.starts_at).isValid())
     return res.json({error: 'Invalid date'});
 
-  round.starts_at = parse_date(round.starts_at);
+  round.starts_at = helper.parse_date(round.starts_at);
   round.ends_at = round.starts_at.clone();
   round.ends_at.add(15, 'days');
 

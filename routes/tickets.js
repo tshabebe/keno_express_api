@@ -2,46 +2,9 @@ var express = require('express')
   , bodyParser = require('body-parser')
   , _ = require('underscore')
   , db = require('../lib/db')
+  , helper = require('../lib/helper')
   , moment = require('moment');
-
-var router = express.Router()
-router.use(bodyParser.urlencoded({ extended: true }));
-
-// TODO: create a Helper for it
-function compact_numbers(query){
-
-  var result = [
-    parseInt(query.number_one),
-    parseInt(query.number_two),
-    parseInt(query.number_three),
-    parseInt(query.number_four),
-    parseInt(query.number_five),
-    parseInt(query.number_six),
-    parseInt(query.number_seven),
-    parseInt(query.number_eight),
-    parseInt(query.number_nine),
-    parseInt(query.number_ten)
-  ]
-
-  query.played_number = _.compact(result);
-  query.played_number = _.uniq(query.played_number);
-  query.played_number = query.played_number.sort(function(a, b){return a-b});
-
-  if (query.played_number.length<5) return false
-
-  delete query.number_one;
-  delete query.number_two;
-  delete query.number_three;
-  delete query.number_four;
-  delete query.number_five;
-  delete query.number_six;
-  delete query.number_seven;
-  delete query.number_eight;
-  delete query.number_nine;
-  delete query.number_ten;
-
-  return query
-}
+var router = express.Router();
 
 /**
  * @swagger
@@ -60,16 +23,6 @@ function compact_numbers(query){
  *      nickname: tickets
  *      consumes: 
  *        - text/html
- *      parameters:
- *        - name: player_name
- *          description: Search for player name
- *          dataType: string
- *          paramType: query
- *        - name: created_at
- *          description: Search for a speficif date. e.g. 2018-06-26
- *          dataType: string
- *          format: date
- *          paramType: query
  */           
 router.get('/tickets', function(req, res) {
   db.conn(function(db){
@@ -150,7 +103,7 @@ router.get('/tickets', function(req, res) {
 router.post('/tickets', function(req, res) {
   ticket = _.extend(req.query, {created_at: moment().toDate()});
   
-  req.query = compact_numbers(req.query);
+  req.query = helper.compact_numbers(req.query);
   if (req.query){
     db.conn(function(db){
       db.collection('tickets').save(ticket, function(err, result) {

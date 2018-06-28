@@ -5,7 +5,6 @@ var createError = require('http-errors')
   , logger = require('morgan')
 
   , indexRouter = require('./routes/index')
-  , usersRouter = require('./routes/users')
   , roundsRouter = require('./routes/rounds')
   , ticketsRouter = require('./routes/tickets')
   , drawningsRouter = require('./routes/drawnings')
@@ -55,7 +54,6 @@ app.use('/', roundsRouter);
 app.use('/', ticketsRouter);
 app.use('/', drawningsRouter);
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 
 // error handler
 app.use(function(err, req, res, next) {
