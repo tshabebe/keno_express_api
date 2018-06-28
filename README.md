@@ -12,14 +12,14 @@ The server generates the 20 number draw and calculates the winnings.
 The response includes a unique draw ID, the user’s input, the numbers drawn, winnings, and current timestamp.
 
 Details:
-[howtoplay](https://www.kylottery.com/apps/draw_games/keno/howtoplay.html),
-[details](https://www.kylottery.com/export/kylmod/galleries/documents/KYLottery_terms/Keno-Rules-9-22-17-no-signature-page.pdf)
+[how to play](https://www.kylottery.com/apps/draw_games/keno/howtoplay.html),
+[detail](https://www.kylottery.com/export/kylmod/galleries/documents/KYLottery_terms/Keno-Rules-9-22-17-no-signature-page.pdf)
 
 ## How to use it
 
 1 - Download and run
 
-    $ git clone https://github.com/altherlex/keno_express_api.git
+    $ git clone https://github.com/altherlex/keno_express_api
     $ cd keno_express_api
     $ npm install
     $ npm run dev
