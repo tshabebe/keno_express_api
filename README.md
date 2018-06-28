@@ -34,7 +34,7 @@ The response includes a unique draw ID, the user’s input, the numbers drawn, w
 
 5 - [TICKET] Create your bet on POST Ticket.
 
-6 - [Drawn] Generate the 20 number draw
+6 - [DRAW] Generate the 20 number draw
 
 
 ## Tools
