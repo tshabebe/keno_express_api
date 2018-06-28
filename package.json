@@ -5,7 +5,7 @@
   "private": true,
   "author": "Alther <para.alves@gmail.com>",
   "scripts": {
-    "start": "node app.js",
+    "start": "node ./bin/www",
     "dev": "./node_modules/.bin/nodemon app.js",
     "jshint": "jshint --config jshint.cfg $(find . -name *.js | grep -v './node_modules')",
     "test": "jasmine"
