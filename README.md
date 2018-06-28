@@ -44,13 +44,18 @@ The response includes a unique draw ID, the user’s input, the numbers drawn, w
 - Use mongoose
 - Validate data for create a round
 - Validate existed rounds for create a round
-- ---Set create_at and update_at---
-- ---Set ends_at on round---
+- <del>Set create_at and update_at</del>
+- <del>Set ends_at on round</del>
 - Filter rounds/index params
 - Filter tickets/index params
-- Generates one drawn by round
+- <del>Generates one drawn by round</del>
 - Check db operation - render db error
 - Send POST request parameters as body
+- DRY
+- Use cofeescript
+- <del>[Tickets] check format of data: must be a valid number<del>
+- 'use strict'
+- Dont allow bet in old drawns
 
 ## Quick Start
 

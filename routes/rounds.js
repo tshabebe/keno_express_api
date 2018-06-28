@@ -1,18 +1,11 @@
 var express = require('express')
   , bodyParser = require('body-parser')
   , _ = require('underscore')
+  , db = require('../lib/db')
   , moment = require('moment');
 
-var MongoClient = require('mongodb').MongoClient
 var router = express.Router()
 router.use(bodyParser.urlencoded({ extended: true }));
-
-function db(callback) {
-  MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
-    var db = client.db('keno_express_api');
-    callback(db);
-  });
-}
 
 function parse_date(string){
   if (!moment(string).isValid()) return false
@@ -49,7 +42,7 @@ function parse_date(string){
  *          paramType: query
  */           
 router.get('/rounds', function(req, res) {
-  db(function(db){
+  db.conn(function(db){
     db.collection('rounds').find().toArray(function(err, results) {
       res.json(results);
     });
@@ -86,7 +79,7 @@ router.post('/rounds', function(req, res) {
   round.starts_at = round.starts_at.toDate();
   round.ends_at = round.ends_at.toDate()
 
-  db(function(db) {
+  db.conn(function(db) {
     db.collection('rounds').save(round, function(err, result) {
       if (err) return console.log(err)
       res.json(result);

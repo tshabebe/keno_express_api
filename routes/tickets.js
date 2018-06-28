@@ -1,17 +1,46 @@
 var express = require('express')
   , bodyParser = require('body-parser')
   , _ = require('underscore')
+  , db = require('../lib/db')
   , moment = require('moment');
 
 var router = express.Router()
-var MongoClient = require('mongodb').MongoClient
 router.use(bodyParser.urlencoded({ extended: true }));
 
-function db(callback){
-  MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
-    var db = client.db('keno_express_api')
-    callback(db);
-  })
+// TODO: create a Helper for it
+function compact_numbers(query){
+
+  var result = [
+    parseInt(query.number_one),
+    parseInt(query.number_two),
+    parseInt(query.number_three),
+    parseInt(query.number_four),
+    parseInt(query.number_five),
+    parseInt(query.number_six),
+    parseInt(query.number_seven),
+    parseInt(query.number_eight),
+    parseInt(query.number_nine),
+    parseInt(query.number_ten)
+  ]
+
+  query.played_number = _.compact(result);
+  query.played_number = _.uniq(query.played_number);
+  query.played_number = query.played_number.sort(function(a, b){return a-b});
+
+  if (query.played_number.length<5) return false
+
+  delete query.number_one;
+  delete query.number_two;
+  delete query.number_three;
+  delete query.number_four;
+  delete query.number_five;
+  delete query.number_six;
+  delete query.number_seven;
+  delete query.number_eight;
+  delete query.number_nine;
+  delete query.number_ten;
+
+  return query
 }
 
 /**
@@ -28,7 +57,6 @@ function db(callback){
  *   -  httpMethod: GET
  *      summary: List tickets
  *      notes: Returns a list of tickets
- *      responseClass: Round
  *      nickname: tickets
  *      consumes: 
  *        - text/html
@@ -44,7 +72,7 @@ function db(callback){
  *          paramType: query
  */           
 router.get('/tickets', function(req, res) {
-  db(function(db){
+  db.conn(function(db){
     db.collection('tickets').find().toArray(function(err, results) {
       res.json(results);
     });
@@ -63,6 +91,11 @@ router.get('/tickets', function(req, res) {
  *      consumes: 
  *        - text/html
  *      parameters:
+ *        - name: round_id
+ *          description: Round id
+ *          paramType: query
+ *          required: true
+ *          dataType: string
  *        - name: player_name
  *          description: Player name
  *          paramType: query
@@ -115,13 +148,20 @@ router.get('/tickets', function(req, res) {
  *          dataType: string
  */
 router.post('/tickets', function(req, res) {
-  ticket = _.extend(req.query, {created_at: moment().format().toDate()});
-  db(function(db){
-    db.collection('tickets').save(ticket, function(err, result) {
-      if (err) return console.log(err)
-      res.json(result);
+  ticket = _.extend(req.query, {created_at: moment().toDate()});
+  
+  req.query = compact_numbers(req.query);
+  if (req.query){
+    db.conn(function(db){
+      db.collection('tickets').save(ticket, function(err, result) {
+        if (err) return console.log(err)
+        res.json(result);
+      });
     });
-  });
+  }else{
+    res.json('input not valid');
+  }
+
 })
 
 

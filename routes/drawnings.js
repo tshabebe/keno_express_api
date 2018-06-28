@@ -65,11 +65,12 @@ router.get('/drawnings', function(req, res) {
  *          dataType: string
  */           
 router.post('/drawnings', function(req, res) {
+
   async.parallel({
     round: function(callback) {
       MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
         var db = client.db('keno_express_api');
-
+        
         try {
           var params_id = ObjectId(req.query.round_id);
         }
@@ -78,44 +79,74 @@ router.post('/drawnings', function(req, res) {
         }   
 
         db.collection('rounds').findOne({'_id': params_id}, function(err, round) {
-          if (err) res.json(err)
-          callback(null, round);
+          callback(err, round);
         });
+
         client.close();
       });
     },
     drawn: function(callback) {
       MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
         var db = client.db('keno_express_api');
+
         db.collection('drawnings').findOne({'round_id': req.query.round_id}, function(err, drawn) {
-          if (err) res.json(err)
-          callback(null, drawn);
+          callback(err, drawn);
+        });
+
+        client.close();
+      });
+    }
+  }, function(err, results) {
+
+    async.parallel({
+      loaded_drawn: function(callback){
+        MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
+          var db = client.db('keno_express_api');
+
+          if (!results.round)
+            callback({error: 'round not found'}, null);
+          if (results.drawn){
+            callback(err, results.drawn);
+          }else{
+            drawn = _.extend(req.query, {created_at: moment().toDate()});
+            drawn.drawn_number = drawning_gateway.load();
+            db.collection('drawnings').save(drawn, function(err, result) {
+              // TODO: check success
+              callback(err, drawn);
+            });
+          } // end if
+
+          client.close();
+        });
+      } // end load_drawn
+    }, function(err, results) {
+      if (err) return res.json(err);
+
+      MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
+        var db = client.db('keno_express_api');
+        // DOC: Calculates the winnings
+        db.collection('tickets').find({'round_id': req.query.round_id}).toArray(function(err, tickets) {
+          if (err) return res.json(err);
+
+          var winnings = _.filter(tickets, function(num){ 
+              match = _.intersection(results.loaded_drawn.drawn_number, tickets.played_number);
+              return match.length>=5
+            });
+
+          var final = {
+            current_timestamp: moment().toDate()
+            drawn: results.loaded_drawn,
+            winnings: winnings,
+          }
+          res.json(final);
         });
         client.close();
       });
-    },
-  }, function(err, results) {
-    if (err) return res.json(err);
 
-    MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
-      var db = client.db('keno_express_api');
+    }); //async.parallel
 
-      if (!results.round)
-        res.json({error: 'round not found'});
-      if (results.drawn){
-        res.json(results.drawn);
-      }else{
-        drawn = _.extend(req.query, {created_at: moment().toDate()});
-        drawn.numbers = drawning_gateway.load();
-        db.collection('drawnings').save(drawn, function(err, result) {
-          if (err) res.json(err)
-          res.json(results);
-        });
-      } // end if
 
-      client.close();
-    });
-  });
+  }); //async.parallel first
 })
 
 module.exports = router;
@@ -126,7 +157,7 @@ module.exports = router;
  *   Drawn:
  *     id: Drawn
  *     properties:
- *       numbers: 
+ *       drawn_number: 
  *         type: Array
  *         format: date-time
  *         required: true
