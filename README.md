@@ -27,9 +27,13 @@ The response includes a unique draw ID, the user’s input, the numbers drawn, w
     $ npm run dev
 
 2 - Access http://localhost:3000/swagger/
+
 3 - [ROUND]Click 'Round' and make a POST resquest informing the start date of the round
+
 4 - [ROUND]Check your new round on GET Round. Grab your '_id' number.
+
 5 - [TICKET] Create your bet on POST Ticket.
+
 6 - [Drawn] Generate the 20 number draw
 
 
@@ -51,8 +55,8 @@ The response includes a unique draw ID, the user’s input, the numbers drawn, w
 ## TODO
 
 - Use mongoose
-- Validate data for create a round
-- Validate existed rounds for create a round
+- Validate data for creating a round
+- Validate existed rounds for creating a round
 - <del>Set create_at and update_at</del>
 - <del>Set ends_at on round</del>
 - Filter rounds/index params
@@ -60,7 +64,7 @@ The response includes a unique draw ID, the user’s input, the numbers drawn, w
 - <del>Generates one drawn by round</del>
 - Check db operation - render db error
 - Send POST request parameters as body
-- DRY
+- <del>DRY<del>
 - Use cofeescript
 - <del>[Tickets] check format of data: must be a valid number<del>
 - 'use strict'
