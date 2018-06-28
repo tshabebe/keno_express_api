@@ -6,7 +6,8 @@
   "author": "Alther <para.alves@gmail.com>",
   "scripts": {
     "dev": "./node_modules/.bin/nodemon app.js",
-    "test": "jshint --config jshint.cfg $(find . -name *.js | grep -v './node_modules')"
+    "jshint": "jshint --config jshint.cfg $(find . -name *.js | grep -v './node_modules')",
+    "test": "jasmine"
   },
   "dependencies": {
     "async": "^2.6.1",
@@ -37,5 +38,8 @@
     "restful",
     "mongodb"
   ],
-  "repository": "git://github.com/altherlex/keno_express_api"
+  "repository": "git://github.com/altherlex/keno_express_api",
+  "devDependencies": {
+    "jasmine": "^3.1.0"
+  }
 }

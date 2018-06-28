@@ -115,7 +115,7 @@ router.get('/tickets', function(req, res) {
  *          dataType: string
  */
 router.post('/tickets', function(req, res) {
-  ticket = _.extend(req.query, {created_at: moment().format()});
+  ticket = _.extend(req.query, {created_at: moment().format().toDate()});
   db(function(db){
     db.collection('tickets').save(ticket, function(err, result) {
       if (err) return console.log(err)
@@ -163,6 +163,6 @@ module.exports = router;
  *       number_ten: 
  *         type: number
  *       created_at: 
- *         type: String
+ *         type: DateTime
  *         format: date-time
  */

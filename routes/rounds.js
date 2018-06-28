@@ -108,15 +108,15 @@ module.exports = router;
  *     id: Round
  *     properties:
  *       starts_at: 
- *         type: String
+ *         type: DateTime
  *         format: date-time
  *         required: true
  *       ends_at: 
- *         type: String
+ *         type: DateTime
  *         format: date-time
  *         required: true
  *       created_at: 
- *         type: String
+ *         type: DateTime
  *         format: date-time
  *         required: true
  */

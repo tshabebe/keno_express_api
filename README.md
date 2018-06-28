@@ -21,14 +21,16 @@ The response includes a unique draw ID, the user’s input, the numbers drawn, w
 
 - [Express](https://github.com/visionmedia/express)
 - [Swagger](https://developers.helloreverb.com/swagger/) 
-- npm install nodemon -s
-- npm install mongodb -s
-- npm install underscore -s
-- npm install async -s
-- npm install js-yaml -s
-- npm install coffee-script -s
-- npm install doctrine -s
-
+- [mLab](https://mlab.com)
+- npm i nodemon -s
+- npm i mongodb -s
+- npm i underscore -s
+- npm i async -s
+- npm i js-yaml -s
+- npm i coffee-script -s
+- npm i doctrine -s
+- npm i moment -s
+- npm i jasmine --save-dev
 
 ## Run
 
@@ -42,10 +44,13 @@ The response includes a unique draw ID, the user’s input, the numbers drawn, w
 - Use mongoose
 - Validate data for create a round
 - Validate existed rounds for create a round
-- Set create_at and update_at
-- Set ends_at on round
+- ---Set create_at and update_at---
+- ---Set ends_at on round---
 - Filter rounds/index params
 - Filter tickets/index params
+- Generates one drawn by round
+- Check db operation - render db error
+- Send POST request parameters as body
 
 ## Quick Start
 
