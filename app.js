@@ -11,6 +11,7 @@ var createError = require('http-errors')
 
   , bodyParser = require('body-parser')
   , swagger = require('./')
+  , cors = require('cors')
   , app = express();
 
 var db
@@ -19,6 +20,8 @@ const MongoClient = require('mongodb').MongoClient
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
+
+app.use(cors())
 
 app.use(logger('dev'));
 app.use(express.json());

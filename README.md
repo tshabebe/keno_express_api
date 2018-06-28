@@ -49,6 +49,7 @@ Details:
 - npm i doctrine -s
 - npm i moment -s
 - npm i jasmine --save-dev
+- npm i cors -s
 
 ## TODO
 
