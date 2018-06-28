@@ -11,11 +11,9 @@ The server generates the 20 number draw and calculates the winnings.
 
 The response includes a unique draw ID, the user’s input, the numbers drawn, winnings, and current timestamp.
 
-
-## About Keno
-
-- [howtoplay](https://www.kylottery.com/apps/draw_games/keno/howtoplay.html)
-- [Details](https://www.kylottery.com/export/kylmod/galleries/documents/KYLottery_terms/Keno-Rules-9-22-17-no-signature-page.pdf)
+Details:
+[howtoplay](https://www.kylottery.com/apps/draw_games/keno/howtoplay.html),
+[details](https://www.kylottery.com/export/kylmod/galleries/documents/KYLottery_terms/Keno-Rules-9-22-17-no-signature-page.pdf)
 
 ## How to use it
 
