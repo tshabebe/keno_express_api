@@ -43,11 +43,15 @@ app.use(bodyParser.json())
 //   next(createError(404));
 // });
 
+if (process.env.ADDRESS)
+  var address = process.env.ADDRESS
+else
+  var address = 'http://localhost:3000'
+
 app.use(swagger.init(app, {
-  cors: cors,
   apiVersion: '1.0',
   swaggerVersion: '1.0',
-  basePath: 'http://localhost:3000',
+  basePath: address,
   swaggerURL: '/swagger',
   swaggerJSON: '/api-docs.json',
   swaggerUI: './app/public/swagger/',
