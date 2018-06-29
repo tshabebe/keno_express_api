@@ -24,21 +24,15 @@ Download and run
     $ npm install
     $ npm run dev
 
-Or use Heroku link:
+Or on Heroku: [keno-express-api](https://keno-express-api.herokuapp.com)
 
-2 - Access http://localhost:3000/swagger/
+2 - [ROUND]Click 'Round' and make a POST resquest informing the start date of the round
 
-3 - [ROUND]Click 'Round' and make a POST resquest informing the start date of the round
+3 - [ROUND]Check your new round on GET Round. Grab your '_id' number.
 
-  $ curl -X POST https://keno-express-api.herokuapp.com/rounds?starts_at=2018-10-10
+4 - [TICKET] Create your bet on POST Ticket.
 
-4 - [ROUND]Check your new round on GET Round. Grab your '_id' number.
-
-  $ curl https://keno-express-api.herokuapp.com/rounds
-
-5 - [TICKET] Create your bet on POST Ticket.
-
-6 - [DRAW] Generate the 20 number draw
+5 - [DRAW] Generate the 20 number draw
 
 
 ## Tools
