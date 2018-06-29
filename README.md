@@ -17,18 +17,24 @@ Details:
 
 ## How to use it
 
-1 - Download and run
+Download and run
 
     $ git clone https://github.com/altherlex/keno_express_api
     $ cd keno_express_api
     $ npm install
     $ npm run dev
 
+Or use Heroku link:
+
 2 - Access http://localhost:3000/swagger/
 
 3 - [ROUND]Click 'Round' and make a POST resquest informing the start date of the round
 
+  $ curl -X POST https://keno-express-api.herokuapp.com/rounds?starts_at=2018-10-10
+
 4 - [ROUND]Check your new round on GET Round. Grab your '_id' number.
+
+  $ curl https://keno-express-api.herokuapp.com/rounds
 
 5 - [TICKET] Create your bet on POST Ticket.
 

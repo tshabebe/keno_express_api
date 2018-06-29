@@ -21,7 +21,7 @@ const MongoClient = require('mongodb').MongoClient
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
-app.use(cors())
+app.use(cors());
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -44,6 +44,7 @@ app.use(bodyParser.json())
 // });
 
 app.use(swagger.init(app, {
+  cors: cors,
   apiVersion: '1.0',
   swaggerVersion: '1.0',
   basePath: 'http://localhost:3000',
