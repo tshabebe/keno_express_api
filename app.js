@@ -77,12 +77,8 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-MongoClient.connect('mongodb://admin:Adminadmin123@ds217671.mlab.com:17671/keno_express_api', function(err, client) {
-  if (err) return console.log(err)
-  db = client.db('keno_express_api')
-  app.listen(3000, function(){
-    console.log('listening on 3000')
-  })
+app.listen(3000, function(){
+  console.log('listening on 3000')
 })
 
 module.exports = app;
