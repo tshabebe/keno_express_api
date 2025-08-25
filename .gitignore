@@ -1,4 +1,5 @@
-
-node_modules/
-.DS_Store
-/nbproject/private/
+node_modules
+.dist
+coverage
+dist
+.env
