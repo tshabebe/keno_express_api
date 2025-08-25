@@ -1,14 +1,6 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, type Model, type InferSchemaType, type HydratedDocument } from 'mongoose';
 
-export interface LobbyDocument extends Document {
-  name: string;
-  max_players: number;
-  players: string[];
-  created_at: Date;
-  owner_id: string;
-}
-
-const LobbySchema = new Schema<LobbyDocument>({
+const LobbySchema = new Schema({
   name: { type: String, required: true },
   max_players: { type: Number, required: true, default: 10 },
   players: { type: [String], required: true, default: [] },
@@ -16,7 +8,11 @@ const LobbySchema = new Schema<LobbyDocument>({
   owner_id: { type: String, required: true }
 });
 
-export const Lobby: Model<LobbyDocument> = mongoose.models.Lobby || mongoose.model<LobbyDocument>('Lobby', LobbySchema, 'lobbies');
+export type Lobby = InferSchemaType<typeof LobbySchema>;
+export type LobbyDoc = HydratedDocument<Lobby>;
+export type LobbyModel = Model<Lobby>;
+
+export const Lobby: LobbyModel = (mongoose.models.Lobby as LobbyModel) || mongoose.model<Lobby>('Lobby', LobbySchema, 'lobbies');
 
 export default Lobby;
 

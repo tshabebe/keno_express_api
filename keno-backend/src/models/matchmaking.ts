@@ -1,16 +1,15 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, type Model, type InferSchemaType, type HydratedDocument } from 'mongoose';
 
-export interface MatchmakingQueueDocument extends Document {
-  user_id: string;
-  enqueued_at: Date;
-}
-
-const MatchmakingQueueSchema = new Schema<MatchmakingQueueDocument>({
+const MatchmakingQueueSchema = new Schema({
   user_id: { type: String, required: true, unique: true, index: true },
   enqueued_at: { type: Date, default: () => new Date() }
 });
 
-export const MatchmakingQueue: Model<MatchmakingQueueDocument> = mongoose.models.MatchmakingQueue || mongoose.model<MatchmakingQueueDocument>('MatchmakingQueue', MatchmakingQueueSchema, 'matchmaking_queue');
+export type MatchmakingQueue = InferSchemaType<typeof MatchmakingQueueSchema>;
+export type MatchmakingQueueDoc = HydratedDocument<MatchmakingQueue>;
+export type MatchmakingQueueModel = Model<MatchmakingQueue>;
+
+export const MatchmakingQueue: MatchmakingQueueModel = (mongoose.models.MatchmakingQueue as MatchmakingQueueModel) || mongoose.model<MatchmakingQueue>('MatchmakingQueue', MatchmakingQueueSchema, 'matchmaking_queue');
 
 export default MatchmakingQueue;
 

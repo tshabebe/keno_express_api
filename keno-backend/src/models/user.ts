@@ -1,20 +1,17 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, type Model, type InferSchemaType, type HydratedDocument } from 'mongoose';
 
-export interface UserDocument extends Document {
-  email: string;
-  password_hash: string;
-  display_name: string;
-  created_at: Date;
-}
-
-const UserSchema = new Schema<UserDocument>({
+const UserSchema = new Schema({
   email: { type: String, required: true, unique: true, index: true },
   password_hash: { type: String, required: true },
   display_name: { type: String, required: true },
   created_at: { type: Date, default: () => new Date() }
 });
 
-export const User: Model<UserDocument> = mongoose.models.User || mongoose.model<UserDocument>('User', UserSchema, 'users');
+export type User = InferSchemaType<typeof UserSchema>;
+export type UserDoc = HydratedDocument<User>;
+export type UserModel = Model<User>;
+
+export const User: UserModel = (mongoose.models.User as UserModel) || mongoose.model<User>('User', UserSchema, 'users');
 
 export default User;
 

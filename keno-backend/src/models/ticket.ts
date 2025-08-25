@@ -1,18 +1,16 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, type Model, type InferSchemaType, type HydratedDocument } from 'mongoose';
 
-export interface TicketDocument extends Document {
-  round_id: string;
-  played_number: number[];
-  created_at: Date;
-}
-
-const TicketSchema = new Schema<TicketDocument>({
+const TicketSchema = new Schema({
   round_id: { type: String, required: true, index: true },
   played_number: { type: [Number], required: true },
   created_at: { type: Date, default: () => new Date() }
 });
 
-export const Ticket: Model<TicketDocument> = mongoose.models.Ticket || mongoose.model<TicketDocument>('Ticket', TicketSchema, 'tickets');
+export type Ticket = InferSchemaType<typeof TicketSchema>;
+export type TicketDoc = HydratedDocument<Ticket>;
+export type TicketModel = Model<Ticket>;
+
+export const Ticket: TicketModel = (mongoose.models.Ticket as TicketModel) || mongoose.model<Ticket>('Ticket', TicketSchema, 'tickets');
 
 export default Ticket;
 

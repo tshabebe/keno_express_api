@@ -32,7 +32,7 @@ router.post('/drawnings', async (req, res) => {
 
   const tickets = await Ticket.find({ round_id: roundIdRaw }).lean();
   const winnings = tickets.filter((ticket: any) => {
-    const match = _.intersection(drawn!.drawn_number, ticket.played_number);
+    const match = _.intersection((drawn as any).drawn_number, ticket.played_number);
     return match.length >= 5;
   });
 

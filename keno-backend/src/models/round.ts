@@ -1,18 +1,16 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, type Model, type InferSchemaType, type HydratedDocument } from 'mongoose';
 
-export interface RoundDocument extends Document {
-  starts_at: Date;
-  ends_at: Date;
-  created_at: Date;
-}
-
-const RoundSchema = new Schema<RoundDocument>({
+const RoundSchema = new Schema({
   starts_at: { type: Date, required: true },
   ends_at: { type: Date, required: true },
   created_at: { type: Date, default: () => new Date() }
 });
 
-export const Round: Model<RoundDocument> = mongoose.models.Round || mongoose.model<RoundDocument>('Round', RoundSchema, 'rounds');
+export type Round = InferSchemaType<typeof RoundSchema>;
+export type RoundDoc = HydratedDocument<Round>;
+export type RoundModel = Model<Round>;
+
+export const Round: RoundModel = (mongoose.models.Round as RoundModel) || mongoose.model<Round>('Round', RoundSchema, 'rounds');
 
 export default Round;
 
