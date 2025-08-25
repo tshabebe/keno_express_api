@@ -1,44 +1,37 @@
 import { Router } from 'express';
-import { getDb } from '../lib/db';
 import { authRequired } from '../middleware/auth';
-import { ObjectId } from 'mongodb';
+import Lobby from '../models/lobby';
 
 const router = Router();
 
 router.get('/lobbies', async (_req, res) => {
-  const db = await getDb();
-  const items = await db.collection('lobbies').find().toArray();
+  const items = await Lobby.find();
   res.json(items);
 });
 
 router.post('/lobbies', authRequired, async (req, res) => {
   const { name, maxPlayers } = req.body || {};
-  const db = await getDb();
-  const lobby = { name: name || 'Lobby', max_players: maxPlayers || 10, players: [], created_at: new Date(), owner_id: (req as any).user.userId };
-  const result = await db.collection('lobbies').insertOne(lobby);
-  res.json({ id: result.insertedId, ...lobby });
+  const ownerId = req.user?.userId as string;
+  const lobby = await Lobby.create({ name: name || 'Lobby', max_players: maxPlayers || 10, players: [], owner_id: ownerId });
+  res.json({ id: (lobby as any)._id, ...lobby.toObject() });
 });
 
 router.post('/lobbies/:id/join', authRequired, async (req, res) => {
-  const db = await getDb();
   const id = req.params.id;
-  const _id = ObjectId.isValid(id) ? new ObjectId(id) : id as any;
-  const lobby = await db.collection('lobbies').findOne({ _id });
+  const lobby = await Lobby.findById(id);
   if (!lobby) return res.status(404).json({ error: 'not found' });
-  const userId = (req as any).user.userId;
-  const players: string[] = (lobby as any).players || [];
+  const userId = req.user?.userId as string;
+  const players: string[] = lobby.players || [];
   if (players.includes(userId)) return res.json({ ok: true });
-  if ((players.length || 0) >= ((lobby as any).max_players || 10)) return res.status(400).json({ error: 'lobby full' });
-  await db.collection('lobbies').updateOne({ _id: (lobby as any)._id }, { $addToSet: { players: userId } });
+  if ((players.length || 0) >= (lobby.max_players || 10)) return res.status(400).json({ error: 'lobby full' });
+  await Lobby.updateOne({ _id: (lobby as any)._id }, { $addToSet: { players: userId } });
   res.json({ ok: true });
 });
 
 router.post('/lobbies/:id/leave', authRequired, async (req, res) => {
-  const db = await getDb();
   const id = req.params.id;
-  const _id = ObjectId.isValid(id) ? new ObjectId(id) : id as any;
-  const userId = (req as any).user.userId;
-  await db.collection('lobbies').updateOne({ _id }, { $pull: { players: userId } });
+  const userId = req.user?.userId as string;
+  await Lobby.updateOne({ _id: id }, { $pull: { players: userId } });
   res.json({ ok: true });
 });
 
