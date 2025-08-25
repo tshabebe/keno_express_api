@@ -4,6 +4,7 @@ import moment from 'moment';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../lib/db';
 import { load as loadDrawning } from '../lib/drawning_gateway';
+import type { Server as SocketIOServer } from 'socket.io';
 
 const router = Router();
 
@@ -40,7 +41,10 @@ router.post('/drawnings', async (req, res) => {
     drawn,
     winnings,
   };
-
+  try {
+    const io: SocketIOServer | undefined = (req.app as any).get('io');
+    io?.to(`lobby:${roundIdRaw}`).emit('draw:completed', final);
+  } catch {}
   res.json(final);
 });
 
