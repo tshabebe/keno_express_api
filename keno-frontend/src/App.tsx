@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Layout from './components/Layout'
 import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
 import ResultsPanel from './features/keno/ResultsPanel'
 import HistoryPanel from './features/keno/HistoryPanel'
+import { createTicket, getRounds, postDraw } from './lib/api'
 
 const MAX_PICKS = 10
 
@@ -14,6 +15,7 @@ export default function App() {
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([])
   const [isDrawing, setIsDrawing] = useState<boolean>(false)
   const [history, setHistory] = useState<any[]>([])
+  const [currentRoundId, setCurrentRoundId] = useState<string>('')
 
   const onToggleNumber = (value: number) => {
     setSelectedNumbers((prev) =>
@@ -41,40 +43,50 @@ export default function App() {
 
   const onClear = () => setSelectedNumbers([])
 
-  const isPlaceBetDisabled = useMemo(() => selectedNumbers.length === 0 || betAmount <= 0, [selectedNumbers.length, betAmount])
+  const isPlaceBetDisabled = useMemo(() => selectedNumbers.length < 5 || betAmount <= 0, [selectedNumbers.length, betAmount])
 
   const onPlaceBet = async () => {
-    if (selectedNumbers.length === 0 || betAmount <= 0) return
-    setIsDrawing(true)
-    setDrawnNumbers([])
-    const available = Array.from({ length: 80 }, (_, i) => i + 1)
-    const drawn: number[] = []
-    const toDraw = 20
-    for (let i = 0; i < toDraw; i++) {
-      const idx = Math.floor(Math.random() * available.length)
-      drawn.push(available[idx])
-      available.splice(idx, 1)
-      setDrawnNumbers([...drawn])
-      // small delay for simple animation
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, 50))
+    if (selectedNumbers.length < 5 || betAmount <= 0) return
+    try {
+      if (!currentRoundId) {
+        const rounds = await getRounds()
+        if (rounds.length > 0) setCurrentRoundId(rounds[0]._id)
+      }
+      const roundId = currentRoundId || (await getRounds())[0]?._id || ''
+      if (!roundId) return
+      await createTicket({ roundId, numbers: selectedNumbers.slice(0, 10) })
+      setIsDrawing(true)
+      const res = await postDraw(roundId)
+      const drawn = res.drawn.drawn_number || []
+      setDrawnNumbers(drawn)
+      const hits = selectedNumbers.filter((n) => drawn.includes(n)).length
+      const payout = hits > 0 ? betAmount * hits : 0
+      setBalance((b) => b - betAmount + payout)
+      setHistory((h) => [
+        {
+          id: crypto.randomUUID(),
+          drawn,
+          picks: selectedNumbers.slice().sort((a, b) => a - b),
+          bet: betAmount,
+          payout,
+          date: new Date().toISOString(),
+        },
+        ...h,
+      ])
+    } finally {
+      setIsDrawing(false)
     }
-    const hits = selectedNumbers.filter((n) => drawn.includes(n)).length
-    const payout = hits > 0 ? betAmount * hits : 0
-    setBalance((b) => b - betAmount + payout)
-    setHistory((h) => [
-      {
-        id: crypto.randomUUID(),
-        drawn,
-        picks: selectedNumbers.slice().sort((a, b) => a - b),
-        bet: betAmount,
-        payout,
-        date: new Date().toISOString(),
-      },
-      ...h,
-    ])
-    setIsDrawing(false)
   }
+
+  // load current round once
+  useEffect(() => {
+    (async () => {
+      try {
+        const rounds = await getRounds()
+        if (rounds.length > 0) setCurrentRoundId(rounds[0]._id)
+      } catch {}
+    })()
+  }, [])
 
   return (
     <Layout balance={balance}>
