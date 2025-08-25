@@ -4,6 +4,7 @@ import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
 import ResultsPanel from './features/keno/ResultsPanel'
 import HistoryPanel from './features/keno/HistoryPanel'
+import LobbiesPanel from './features/lobbies/LobbiesPanel'
 import { createTicket, getRounds, postDraw } from './lib/api'
 import { getSocket, joinLobby } from './lib/socket'
 
@@ -131,6 +132,9 @@ export default function App() {
             onPlaceBet={onPlaceBet}
             isPlaceBetDisabled={isPlaceBetDisabled}
           />
+          <div className="mt-4">
+            <LobbiesPanel />
+          </div>
         </div>
       </div>
     </Layout>
