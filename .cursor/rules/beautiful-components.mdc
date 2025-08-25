@@ -1,0 +1,27 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+how to create beautiful components
+
+first when creating a beautiful components first use everything that tailwind css provides do not use any custom ones unless I edit it to use custom one from colors all the way to spacing and font colors and stuff like that
+
+the simpler the better and appealing the more aligned the better and use more modern design that are simpler and easier on the eyes that shows professionalism do not create complex animations and interfaces those are my job I decide if they are needed to be added like gradient animation and sudo elements styles
+
+use left alginment for small texts
+
+use font size of semibold with 14px that is sm as a default and use bigger one like 16px base to create some sort of contrast with the first one and rember to first use colors for emphasis first instead of fontsize make the color less contransted and more contransted like from 700 to 800 or 900 or vise versa and when all things is not working you can use boldness or lightness from relative to the semibold color
+
+use tailwind css color scheme scale for styling to create depth styling do not use opacity and other stuff like that just use the color elevations for example use tailwindcss color family for styling use 950 for background and 100 for text elevations becomes like 900 800 700 and so on muted texts are 200 and more visible texts are 50 do not use anything different other than tailwindcss color family and do not use border ofter to distinigush from one section from another just use color separation it is obvious if you want to make one thing visible more you could increate its color from 900 to 800 to more brighter version
+
+do not use 600 and 700 for background as they are too bright unless they are solid button that are clickable alternate between 900 and 800 go to 800 occastionally
+
+approach from mobile first one remove things thare are not accessible for mobile like hovers and stuff like animations on clicks that redirect and more
+
+and also avoid using labels
+
+how to create appealing layout
+use the psychological principle to apply is the Law of Proximity, which states that elements that are close to each other are perceived as a single group by the human brain. To effectively group or separate elements and establish visual hierarchy, a designer must manipulate three key properties: size, color, and spacing. For instance, to emphasize a title, one would increase its size and boldness, while less important text can be de-emphasized by adjusting the lightness value of its color using the HSL color function, a powerful technique that works well in both light and dark modes.
+
+all in all use the above principle to create visually appealing layout with colors and font-weights if there are elements that needs separation use colors instead of borders like group one related elements that has children inside in less bright and saturated color and the children insde the children would have have brighter or more sublte contrast to to show they are above the parent children use colors to separate thing and remember to use the same color for equal separation and just use colors to show more higherarchy

@@ -1,0 +1,489 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+React components composition: how to get it right
+What is components composition? How do you know when to start splitting a big component into smaller pieces and how to compose them properly? What makes a good component?
+
+Community-supported translations : 汉语
+
+12-04-2022
+Nadia Makarevich
+
+React components composition: how to get it right
+One of the most interesting and challenging things in React is not mastering some advanced techniques for state management or how to use Context properly. More complicated to get right is how and when we should separate our code into independent components and how to compose them properly. I often see developers falling into two traps: either they are not extracting them soon enough, and end up with huge components “monoliths” that do way too many things at the same time, and that are a nightmare to maintain. Or, especially after they have been burned a few times by the previous pattern, they extract components way too early, which results in a complicated combination of multiple abstractions, over-engineered code and again, a nightmare to maintain.
+
+What I want to do today, is to offer a few techniques and rules, that could help identify when and how to extract components on time and how not to fall into an over-engineering trap. But first, let’s refresh some basics: what is composition and which compositions patterns are available to us?
+
+React components composition patterns
+Simple components
+Simple components are a basic building block of React. They can accept props, have some state, and can be quite complicated despite their name. A Button component that accepts title and onClick properties and renders a button tag is a simple component.
+
+const Button = ({ title, onClick }) => <button onClick={onClick}>{title}</button>;
+Any component can render other components - that’s composition. A Navigation component that renders that Button - also a simple component, that composes other components:
+
+const Navigation = () => {
+  return (
+    <>
+      // Rendering out Button component in Navigation component. Composition!
+      <Button title="Create" onClick={onClickHandler} />
+      ... // some other navigation code
+    </>
+  );
+};
+With those components and their composition, we can implement as complicated UI as we want. Technically, we don’t even need any other patterns and techniques, all of them are just nice-to-haves that just improve code reuse or solve only specific use cases.
+
+Container components
+Container components is a more advanced composition technique. The only difference from simple components is that they, among other props, allow passing special prop children, for which React has its own syntax. If our Button from the previous example accepted not title but children it would be written like this:
+
+// the code is exactly the same! just replace "title" with "children"
+const Button = ({ children, onClick }) => <button onClick={onClick}>{children}</button>;
+Which is no different from title from Button perspective. The difference is on the consumer side, children syntax is special and looks like your normal HTML tags:
+
+const Navigation = () => {
+  return (
+    <>
+      <Button onClick={onClickHandler}>Create</Button>
+      ... // some other navigation code
+    </>
+  );
+};
+Anything can go into children. We can, for example, add an Icon component there in addition to text, and then Navigation has a composition of Button and Icon components:
+
+const Navigation = () => {
+  return (
+    <>
+      <Button onClick={onClickHandler}>
+        <!-- Icon component is rendered inside button, but button doesn't know -->
+        <Icon />
+        <span>Create</span>
+      </Button>
+      ...
+      // some other navigation code
+    </>
+  )
+}
+Navigation controls what goes into children, from Button’s perspective it just renders whatever the consumer wants.
+
+We’re going to look more into practical examples of this technique further in the article.
+
+There are other composition patterns, like higher-order components, passing components as props or context, but those should be used only for very specific use cases. Simple components and container components are the two major pillars of React development, and it’s better to perfect the use of those before trying to introduce more advanced techniques.
+
+Now, that you know them, you’re ready to implement as complicated UI as you can possibly need!
+
+Okay, I’m joking, I'm not going to do a “how to draw an owl” type of article here 😅
+
+It’s time for some rules and guidelines so that we can actually draw that owl build complicated React apps with ease.
+
+When is it a good time to extract components?
+The core React development and decomposition rules that I like to follow, and the more I code, the more strongly I feel about them, are:
+
+always start implementation from the top
+extract components only when there is an actual need for it
+always start from “simple” components, introduce other composition techniques only when there is an actual need for them
+Any attempt to think “in advance” or start “bottom-up“ from small re-usable components always ends up either in over-complicated components API or in components that are missing half of the necessary functionality.
+
+And the very first rule for when a component needs to be decomposed into smaller ones is when a component is too big. A good size for a component for me is when it can fit on the screen of my laptop entirely. If I need to scroll to read through the component’s code - it’s a clear sign that it’s too big.
+
+Let’s start coding now, to see how can this looks in practice. We are going to implement a typical Jira page from scratch today, no less (well, sort of, at least we’re going to start 😅).
+
+
+
+This is a screen of an issue page from my personal project where I keep my favourite recipes found online 🍣. In there we need to implement, as you can see:
+
+top bar with logo, some menus, “create” button and a search bar
+sidebar on the left, with the project name, collapsable “planning” and “development” sections with items inside (also divided into groups), with an unnamed section with menu items underneath
+a big “page content” section, where all the information about the current issue is shown
+So let’s start coding all of this in just one big component to start with. It’s probably going to look something like this:
+
+export const JiraIssuePage = () => {
+  return (
+    <div className="app">
+      <div className="top-bar">
+        <div className="logo">logo</div>
+        <ul className="main-menu">
+          <li>
+            <a href="#">Your work</a>
+          </li>
+          <li>
+            <a href="#">Projects</a>
+          </li>
+          <li>
+            <a href="#">Filters</a>
+          </li>
+          <li>
+            <a href="#">Dashboards</a>
+          </li>
+          <li>
+            <a href="#">People</a>
+          </li>
+          <li>
+            <a href="#">Apps</a>
+          </li>
+        </ul>
+        <button className="create-button">Create</button>
+        more top bar items here like search bar and profile menu
+      </div>
+      <div className="main-content">
+        <div className="sidebar">
+          <div className="sidebar-header">ELS project</div>
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Planning</div>
+            <button className="board-picker">ELS board</button>
+
+            <ul className="section-menu">
+              <li>
+                <a href="#">Roadmap</a>
+              </li>
+              <li>
+                <a href="#">Backlog</a>
+              </li>
+              <li>
+                <a href="#">Kanban board</a>
+              </li>
+              <li>
+                <a href="#">Reports</a>
+              </li>
+              <li>
+                <a href="#">Roadmap</a>
+              </li>
+            </ul>
+
+            <ul className="section-menu">
+              <li>
+                <a href="#">Issues</a>
+              </li>
+              <li>
+                <a href="#">Components</a>
+              </li>
+            </ul>
+          </div>
+          <div className="sidebar-section">sidebar development section</div>
+          other sections
+        </div>
+        <div className="page-content">... here there will be a lot of code for issue view</div>
+      </div>
+    </div>
+  );
+};
+Now, I haven’t implemented even half of the necessary items there, not to mention any logic, and the component is already way too big to read through it in one glance. See it in codesandbox. That’s good and expected! So before going any further, it’s time split it into more manageable pieces.
+
+The only thing that I need to do for it, is just to create a few new components and copy-paste code into them. I don’t have any use-cases for any of the advanced techniques (yet), so everything is going to be a simple component.
+
+I’m going to create a Topbar component, which will have everything topbar related, Sidebar component, for everything sidebar related, as you can guess, and Issue component for the main part that we’re not going to touch today. That way our main JiraIssuePage component is left with this code:
+
+export const JiraIssuePage = () => {
+  return (
+    <div className="app">
+      <Topbar />
+      <div className="main-content">
+        <Sidebar />
+        <div className="page-content">
+          <Issue />
+        </div>
+      </div>
+    </div>
+  );
+};
+Now let’s take a look at the new Topbar component implementation:
+
+export const Topbar = () => {
+  return (
+    <div className="top-bar">
+      <div className="logo">logo</div>
+      <ul className="main-menu">
+        <li>
+          <a href="#">Your work</a>
+        </li>
+        <li>
+          <a href="#">Projects</a>
+        </li>
+        <li>
+          <a href="#">Filters</a>
+        </li>
+        <li>
+          <a href="#">Dashboards</a>
+        </li>
+        <li>
+          <a href="#">People</a>
+        </li>
+        <li>
+          <a href="#">Apps</a>
+        </li>
+      </ul>
+      <button className="create-button">Create</button>
+      more top bar items here like search bar and profile menu
+    </div>
+  );
+};
+If I implemented all the items there (search bar, all sub-menus, icons on the right), this component also would’ve been too big, so it also needs to be split. And this one is arguably a more interesting case than the previous one. Because, technically, I can just extract MainMenu component from it to make it small enough.
+
+export const Topbar = () => {
+  return (
+    <div className="top-bar">
+      <div className="logo">logo</div>
+      <MainMenu />
+      <button className="create-button">Create</button>
+      more top bar items here like search bar and profile menu
+    </div>
+  );
+};
+But extracting only MainMenu made the Topbar component slightly harder to read for me. Before, when I looked at the Topbar, I could describe it as “a component that implements various things in the topbar”, and focus on the details only when I need to. Now the description would be “a component that implements various things in the topbar AND composes some random MainMenu component”. The reading flow is ruined.
+
+This leads me to my second rule of components decomposition: when extracting smaller components, don’t stop halfway. A component should be described either as a “component that implements various stuff” or as a “component that composes various components together”, not both.
+
+Therefore, a much better implementatioin of the Topbar component would look like this:
+
+export const Topbar = () => {
+  return (
+    <div className="top-bar">
+      <Logo />
+      <MainMenu />
+      <Create />
+      more top bar components here like SearchBar and ProfileMenu
+    </div>
+  );
+};
+Much easier to read now!
+
+And exactly the same story with the Sidebar component - way too big if I’d implemented all the items, so need to split it:
+
+export const Sidebar = () => {
+  return (
+    <div className="sidebar">
+      <Header />
+      <PlanningSection />
+      <DevelopmentSection />
+      other sidebar sections
+    </div>
+  );
+};
+See the full example in the codesandbox.
+
+And then just repeat those steps every time a component becomes too big. In theory, we can implement this entire Jira page using nothing more than simple components.
+
+When is it time to introduce Container Components?
+Now the fun part - let’s take a look at when we should introduce some advanced techniques and why. Starting with Container components.
+
+First, let’s take a look at the design again. More specifically - at the Planning and Development sections in the sidebar menu.
+
+
+
+Those not only share the same design for the title, but also the same behaviour: click on the title collapses the section, and in “collapsed” mode the mini-arrow icon appears. And we implemented it as two different components - PlanningSection and DevelopmentSection. I could, of course, just implement the “collapse” logic in both of them, it's just a matter of a simple state after all:
+
+const PlanningSection = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  return (
+    <div className="sidebar-section">
+      <div onClick={() => setIsCollapsed(!isCollapsed)} className="sidebar-section-title">
+        Planning
+      </div>
+
+      {!isCollapsed && <>...all the rest of the code</>}
+    </div>
+  );
+};
+But:
+
+it’s quite a lot of repetition even between those two components
+content of those sections is actually different for every project type or page type, so even more repetition in the nearest future
+Ideally, I want to encapsulate the logic of collapsed/expanded behavior and the design for the title, while leaving different sections full control over the items that go inside. This is a perfect use case for the Container components. I can just extract everything from the code example above into a component and pass menu items as children. We’ll have a CollapsableSection component:
+
+const CollapsableSection = ({ children, title }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  return (
+    <div className="sidebar-section">
+      <div className="sidebar-section-title" onClick={() => setIsCollapsed(!isCollapsed)}>
+        {title}
+      </div>
+
+      {!isCollapsed && <>{children}</>}
+    </div>
+  );
+};
+and PlanningSection (and DevelopmentSection and all other future sections) will become just this:
+
+const PlanningSection = () => {
+  return (
+    <CollapsableSection title="Planning">
+      <button className="board-picker">ELS board</button>
+
+      <ul className="section-menu">... all the menu items here</ul>
+    </CollapsableSection>
+  );
+};
+A very similar story is going to be with our root JiraIssuePage component. Right now it looks like this:
+
+export const JiraIssuePage = () => {
+  return (
+    <div className="app">
+      <Topbar />
+      <div className="main-content">
+        <Sidebar />
+        <div className="page-content">
+          <Issue />
+        </div>
+      </div>
+    </div>
+  );
+};
+But as soon as we start implementing other pages that are accessible from the sidebar, we’ll see that they all follow exactly the same pattern - sidebar and topbar stay the same, and only the “page content” area changes. Thanks to the decomposition work we did before we can just copy-paste that layout on every single page - it’s not that much code after all. But since all of them are exactly the same, it would be good to just extract the code that implements all the common parts and leave only components that change to the specific pages. Yet again a perfect case for the “container” component:
+
+const JiraPageLayout = ({ children }) => {
+  return (
+    <div className="app">
+      <Topbar />
+      <div className="main-content">
+        <Sidebar />
+        <div className="page-content">{children}</div>
+      </div>
+    </div>
+  );
+};
+And our JiraIssuePage (and future JiraProjectPage, JiraComponentsPage, etc, all the future pages accessible from the sidebar) becomes just this:
+
+export const JiraIssuePage = () => {
+  return (
+    <JiraPageLayout>
+      <Issue />
+    </JiraPageLayout>
+  );
+};
+If I wanted to summarise the rule in just one sentence, it could be this: extract Container components when there is a need to share some visual or behavioural logic that wraps elements that still need to be under “consumer” control.
+
+Container components - performance use case
+Another very important use case for Container components is improving the performance of components. Technically performance is off-topic a bit for the conversation about composition, but it would be a crime not to mention it here.
+
+In actual Jira the Sidebar component is draggable - you can resize it by dragging it left and right by its edge. How would we implement something like this? Probably we’d introduce a Handle component, some state for the width of the sidebar, and then listen to the “mousemove” event. A rudimentary implementation would look something like this:
+
+export const Sidebar = () => {
+  const [width, setWidth] = useState(240);
+  const [startMoving, setStartMoving] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const changeWidth = (e: MouseEvent) => {
+      if (!startMoving) return;
+      if (!ref.current) return;
+
+      const left = ref.current.getBoundingClientRect().left;
+      const wi = e.clientX - left;
+
+      setWidth(wi);
+    };
+
+    ref.current.addEventListener('mousemove', changeWidth);
+
+    return () => ref.current?.removeEventListener('mousemove', changeWidth);
+  }, [startMoving, ref]);
+
+  const onStartMoving = () => {
+    setStartMoving(true);
+  };
+
+  const onEndMoving = () => {
+    setStartMoving(false);
+  };
+
+  return (
+    <div className="sidebar" ref={ref} onMouseLeave={onEndMoving} style={{ width: `${width}px` }}>
+      <Handle onMouseDown={onStartMoving} onMouseUp={onEndMoving} />
+      ... the rest of the code
+    </div>
+  );
+};
+There is, however, a problem here: every time we move the mouse we trigger a state update, which in turn will trigger re-rendering of the entire Sidebar component. While on our rudimentary sidebar it’s not noticeable, it could make the “dragging” of it visibly laggy when the component becomes more complicated. Container components are a perfect solution for it: all we need is to extract all the heavy state operations in a Container component and pass everything else through children.
+
+const DraggableSidebar = ({ children }: { children: ReactNode }) => {
+  // all the state management code as before
+
+  return (
+    <div
+      className="sidebar"
+      ref={ref}
+      onMouseLeave={onEndMoving}
+      style={{ width: `${width}px` }}
+    >
+      <Handle onMouseDown={onStartMoving} onMouseUp={onEndMoving} />
+      <!-- children will not be affected by this component's re-renders -->
+      {children}
+    </div>
+  );
+};
+And our Sidebar component will turn into this:
+
+export const Sidebar = () => {
+  return (
+    <DraggableSidebar>
+      <Header />
+      <PlanningSection />
+      <DevelopmentSection />
+      other Sections
+    </DraggableSidebar>
+  );
+};
+That way DraggableSidebar component will still re-render on every state change, but it will be super cheap since it’s just one div. And everything that is coming in children will not be affected by this component’s state updates.
+
+See all the examples of container components in this codesandbox. And to compare the bad re-renders use case, see this codesandbox. Pay attention to the console output while dragging the sidebar in those examples - PlanningSection component logs constantly in the “bad” implementation and only once in the “good” one.
+
+And if you want to know more about various patterns and how they influence react performance, you might find those articles interesting: How to write performant React code: rules, patterns, do's and don'ts, Why custom react hooks could destroy your app performance, How to write performant React apps with Context.
+
+Does this state belong to this component?
+Another thing, other than size, that can signal that a component should be extracted, is state management. Or, to be precise, state management that is irrelevant to the component’s functionality. Let me show you what I mean.
+
+One of the items in the sidebar in real Jira is “Add shortcut” item, which opens a modal dialog when you click on it. How would you implement it in our app? The modal dialog itself is obviously going to be its own component, but where you’d introduce the state that opens it? Something like this?
+
+const SomeSection = () => {
+  const [showAddShortcuts, setShowAddShortcuts] = useState(false);
+
+  return (
+    <div className="sidebar-section">
+      <ul className="section-menu">
+        <li>
+          <span onClick={() => setShowAddShortcuts(true)}>Add shortcuts</span>
+        </li>
+      </ul>
+      {showAddShortcuts && <ModalDialog onClose={() => setShowAddShortcuts(false)} />}
+    </div>
+  );
+};
+You can see something like this everywhere, and there is nothing criminal in this implementation. But if I was implementing it, and if I wanted to make this component perfect from the composition perspective, I would extract this state and components related to it outside. And the reason is simple - this state has nothing to do with the SomeSection component. This state controls a modal dialog that appears when you click on shortcuts item. This makes the reading of this component slightly harder for me - I see a component that is “section”, and next line - some random state that has nothing to do with “section”. So instead of the implementation above, I would extract the item and the state that actually belongs to this item into its own component:
+
+const AddShortcutItem = () => {
+  const [showAddShortcuts, setShowAddShortcuts] = useState(false);
+
+  return (
+    <>
+      <span onClick={() => setShowAddShortcuts(true)}>Add shortcuts</span>
+      {showAddShortcuts && <ModalDialog onClose={() => setShowAddShortcuts(false)} />}
+    </>
+  );
+};
+And the section component becomes much simpler as a bonus:
+
+const OtherSection = () => {
+  return (
+    <div className="sidebar-section">
+      <ul className="section-menu">
+        <li>
+          <AddShortcutItem />
+        </li>
+      </ul>
+    </div>
+  );
+};
+See it in the codesandbox.
+
+By the same logic, in the Topbar component I would move the future state that controls menus to a SomeDropdownMenu component, all search-related state to Search component, and everything related to opening “create issue” dialog to the CreateIssue component.
+
+What makes a good component?
+One last thing before closing for today. In the summary I want to write “the secret of writing scalable apps in React is to extract good components at the right time”. We covered the “right time” already, but what exactly is a “good component”? After everything that we covered about composition by now, I think I’m ready to write a definition and a few rules here.
+
+A “good component” is a component that I can easily read and understand what it does from the first glance.
+
+A “good component” should have a good self-describing name. Sidebar for a component that renders sidebar is a good name. CreateIssue for a component that handles issue creation is a good name. SidebarController for a component that renders sidebar items specific for “Issues” page is not a good name (the name indicates that the component is of some generic purpose, not specific to a particular page).
+
+A “good component” doesn’t do things that are irrelevant to its declared purpose. Topbar component that only renders items in the top bar and controls only topbar behaviour is a good component. Sidebar component, that controls the state of various modal dialogs is not the best component.
