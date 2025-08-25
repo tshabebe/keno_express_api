@@ -5,6 +5,7 @@ import BetControls from './features/keno/BetControls'
 import ResultsPanel from './features/keno/ResultsPanel'
 import HistoryPanel from './features/keno/HistoryPanel'
 import { createTicket, getRounds, postDraw } from './lib/api'
+import { getSocket, joinLobby } from './lib/socket'
 
 const MAX_PICKS = 10
 
@@ -16,6 +17,7 @@ export default function App() {
   const [isDrawing, setIsDrawing] = useState<boolean>(false)
   const [history, setHistory] = useState<any[]>([])
   const [currentRoundId, setCurrentRoundId] = useState<string>('')
+  const [lastBet, setLastBet] = useState<{ picks: number[]; amount: number } | null>(null)
 
   const onToggleNumber = (value: number) => {
     setSelectedNumbers((prev) =>
@@ -55,24 +57,10 @@ export default function App() {
       const roundId = currentRoundId || (await getRounds())[0]?._id || ''
       if (!roundId) return
       await createTicket({ roundId, numbers: selectedNumbers.slice(0, 10) })
+      setLastBet({ picks: selectedNumbers.slice().sort((a, b) => a - b), amount: betAmount })
       setIsDrawing(true)
-      const res = await postDraw(roundId)
-      const drawn = res.drawn.drawn_number || []
-      setDrawnNumbers(drawn)
-      const hits = selectedNumbers.filter((n) => drawn.includes(n)).length
-      const payout = hits > 0 ? betAmount * hits : 0
-      setBalance((b) => b - betAmount + payout)
-      setHistory((h) => [
-        {
-          id: crypto.randomUUID(),
-          drawn,
-          picks: selectedNumbers.slice().sort((a, b) => a - b),
-          bet: betAmount,
-          payout,
-          date: new Date().toISOString(),
-        },
-        ...h,
-      ])
+      // trigger draw on backend; updates will also arrive via socket
+      await postDraw(roundId)
     } finally {
       setIsDrawing(false)
     }
@@ -87,6 +75,40 @@ export default function App() {
       } catch {}
     })()
   }, [])
+
+  // socket setup
+  useEffect(() => {
+    const s = getSocket()
+    if (currentRoundId) joinLobby(currentRoundId)
+
+    const onDrawCompleted = (payload: { drawn: { drawn_number: number[] }; winnings: Array<{ played_number: number[] }> }) => {
+      const drawn = payload?.drawn?.drawn_number || []
+      setDrawnNumbers(drawn)
+      if (lastBet) {
+        const hits = lastBet.picks.filter((n) => drawn.includes(n)).length
+        const payout = hits >= 5 ? lastBet.amount * hits : 0
+        setBalance((b) => b - lastBet.amount + payout)
+        setHistory((h) => [
+          {
+            id: crypto.randomUUID(),
+            drawn,
+            picks: lastBet.picks,
+            bet: lastBet.amount,
+            payout,
+            date: new Date().toISOString(),
+          },
+          ...h,
+        ])
+        setLastBet(null)
+      }
+    }
+
+    s.on('draw:completed', onDrawCompleted)
+
+    return () => {
+      s.off('draw:completed', onDrawCompleted)
+    }
+  }, [currentRoundId, lastBet])
 
   return (
     <Layout balance={balance}>
