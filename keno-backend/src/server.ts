@@ -11,6 +11,7 @@ import lobbiesRouter from './routes/lobbies';
 import matchmakingRouter from './routes/matchmaking';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import { connectDb } from './lib/db';
 
 const app = express();
 const server = http.createServer(app);
@@ -51,9 +52,18 @@ io.on('connection', (socket) => {
 });
 
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-server.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`listening on ${port}`);
-});
+(async () => {
+  try {
+    await connectDb();
+    server.listen(port, () => {
+      // eslint-disable-next-line no-console
+      console.log(`listening on ${port}`);
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to connect to MongoDB', err);
+    process.exit(1);
+  }
+})();
 
 export default app;

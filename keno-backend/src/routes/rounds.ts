@@ -1,13 +1,12 @@
 import { Router } from 'express';
 import moment from 'moment';
-import { getDb } from '../lib/db';
 import { parseDate } from '../lib/helper';
+import Round from '../models/round';
 
 const router = Router();
 
 router.get('/rounds', async (_req, res) => {
-  const db = await getDb();
-  const results = await db.collection('rounds').find().toArray();
+  const results = await Round.find();
   res.json(results);
 });
 
@@ -23,9 +22,8 @@ router.post('/rounds', async (req, res) => {
   round.starts_at = startsAt.toDate();
   round.ends_at = endsAt.toDate();
 
-  const db = await getDb();
-  const result = await db.collection('rounds').insertOne(round);
-  res.json(result);
+  const created = await Round.create(round);
+  res.json(created);
 });
 
 router.delete('/rounds/:id', async (_req, res) => {
