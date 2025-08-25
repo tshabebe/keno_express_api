@@ -5,12 +5,15 @@ import BetControls from './features/keno/BetControls'
 import ResultsPanel from './features/keno/ResultsPanel'
 import HistoryPanel from './features/keno/HistoryPanel'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
-import { createTicket, getRounds, postDraw } from './lib/api'
+import { createTicket, getCurrentRound, getRounds, postDraw } from './lib/api'
 import { getSocket, joinLobby } from './lib/socket'
+import { useAuth } from './context/AuthContext'
+import { getMe } from './lib/auth'
 
 const MAX_PICKS = 10
 
 export default function App() {
+  const { user } = useAuth()
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
   const [betAmount, setBetAmount] = useState<number>(1)
   const [balance, setBalance] = useState<number>(1000)
@@ -46,18 +49,20 @@ export default function App() {
 
   const onClear = () => setSelectedNumbers([])
 
-  const isPlaceBetDisabled = useMemo(() => selectedNumbers.length < 5 || betAmount <= 0, [selectedNumbers.length, betAmount])
+  const isPlaceBetDisabled = useMemo(() => selectedNumbers.length < 5 || betAmount <= 0 || !user, [selectedNumbers.length, betAmount, user])
 
   const onPlaceBet = async () => {
     if (selectedNumbers.length < 5 || betAmount <= 0) return
     try {
+      // require auth for server-side wallet deductions
+      // if not signed in, proceed in local-only mode
       if (!currentRoundId) {
-        const rounds = await getRounds()
-        if (rounds.length > 0) setCurrentRoundId(rounds[0]._id)
+        const cur = await getCurrentRound()
+        if (cur) setCurrentRoundId(cur._id)
       }
-      const roundId = currentRoundId || (await getRounds())[0]?._id || ''
+      const roundId = currentRoundId || (await getCurrentRound())?._id || ''
       if (!roundId) return
-      await createTicket({ roundId, numbers: selectedNumbers.slice(0, 10) })
+      await createTicket({ roundId, numbers: selectedNumbers.slice(0, 10), betAmount })
       setLastBet({ picks: selectedNumbers.slice().sort((a, b) => a - b), amount: betAmount })
       setIsDrawing(true)
       // trigger draw on backend; updates will also arrive via socket
@@ -71,8 +76,8 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const rounds = await getRounds()
-        if (rounds.length > 0) setCurrentRoundId(rounds[0]._id)
+        const cur = await getCurrentRound()
+        if (cur) setCurrentRoundId(cur._id)
       } catch {}
     })()
   }, [])
@@ -82,13 +87,19 @@ export default function App() {
     const s = getSocket()
     if (currentRoundId) joinLobby(currentRoundId)
 
-    const onDrawCompleted = (payload: { drawn: { drawn_number: number[] }; winnings: Array<{ played_number: number[] }> }) => {
+    const onDrawCompleted = async (payload: { drawn: { drawn_number: number[] }; winnings: Array<{ played_number: number[] }> }) => {
       const drawn = payload?.drawn?.drawn_number || []
       setDrawnNumbers(drawn)
       if (lastBet) {
         const hits = lastBet.picks.filter((n) => drawn.includes(n)).length
         const payout = hits >= 5 ? lastBet.amount * hits : 0
-        setBalance((b) => b - lastBet.amount + payout)
+        try {
+          const me = await getMe()
+          if (me) setBalance(me.balance)
+          else setBalance((b) => b - lastBet.amount + payout)
+        } catch {
+          setBalance((b) => b - lastBet.amount + payout)
+        }
         setHistory((h) => [
           {
             id: crypto.randomUUID(),
@@ -133,7 +144,7 @@ export default function App() {
             isPlaceBetDisabled={isPlaceBetDisabled}
           />
           <div className="mt-4">
-            <LobbiesPanel />
+            <LobbiesPanel currentRoundId={currentRoundId} />
           </div>
         </div>
       </div>

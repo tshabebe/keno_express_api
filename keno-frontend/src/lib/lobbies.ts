@@ -28,3 +28,9 @@ export async function leaveLobbyApi(id: string) {
   return res.json()
 }
 
+export async function setLobbyRound(id: string, roundId: string) {
+  const res = await apiFetch(`${API_BASE}/lobbies/${id}/round`, { method: 'POST', body: JSON.stringify({ roundId }) })
+  if (!res.ok) throw new Error('Failed to set lobby round')
+  return res.json()
+}
+

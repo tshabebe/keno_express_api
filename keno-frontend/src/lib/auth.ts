@@ -2,7 +2,7 @@ import { apiFetch, setAuthToken } from './http'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
-export type AuthResponse = { token: string; user: { id: string; email: string; displayName: string } }
+export type AuthResponse = { token: string; user: { id: string; email: string; displayName: string; balance?: number } }
 
 export async function register(params: { email: string; password: string; displayName?: string }): Promise<AuthResponse> {
   const res = await apiFetch(`${API_BASE}/auth/register`, { method: 'POST', body: JSON.stringify(params) })
@@ -37,5 +37,12 @@ export function restoreAuth(): AuthResponse | null {
 export function logout() {
   setAuthToken(null)
   localStorage.removeItem('auth')
+}
+
+export async function getMe(): Promise<{ id: string; email: string; displayName: string; balance: number } | null> {
+  const res = await apiFetch(`${API_BASE}/me`)
+  if (res.status === 401) return null
+  if (!res.ok) throw new Error('Failed to load profile')
+  return res.json()
 }
 

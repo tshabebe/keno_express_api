@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { createLobby, joinLobbyApi, listLobbies, type Lobby } from '../../lib/lobbies'
+import { createLobby, joinLobbyApi, listLobbies, setLobbyRound, type Lobby } from '../../lib/lobbies'
 import { useAuth } from '../../context/AuthContext'
 
-export default function LobbiesPanel() {
+export default function LobbiesPanel({ currentRoundId }: { currentRoundId?: string }) {
   const { user } = useAuth()
   const [items, setItems] = useState<Lobby[]>([])
   const [name, setName] = useState('')
@@ -22,7 +22,8 @@ export default function LobbiesPanel() {
   const create = async () => {
     try {
       setLoading(true)
-      await createLobby({ name: name || 'Lobby' })
+      const lobby = await createLobby({ name: name || 'Lobby' })
+      if (currentRoundId && lobby?.id) await setLobbyRound(lobby.id, currentRoundId)
       setItems(await listLobbies())
       setName('')
     } catch (e) {

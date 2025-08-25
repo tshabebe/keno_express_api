@@ -7,6 +7,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 import Round from '../models/round';
 import Drawning from '../models/drawning';
 import Ticket from '../models/ticket';
+import User from '../models/user';
 
 const router = Router();
 
@@ -41,6 +42,19 @@ router.post('/drawnings', async (req, res) => {
     const match = _.intersection(drawn!.drawn_number, ticket.played_number);
     return match.length >= 5;
   });
+
+  // credit winners based on simple payout: bet_amount * matches
+  const creditOps = await Promise.all(
+    winnings.map(async (t: any) => {
+      const hits = _.intersection(drawn!.drawn_number, t.played_number).length;
+      const payout = (t.bet_amount || 0) * hits;
+      if (payout > 0 && t.user_id) {
+        await User.updateOne({ _id: t.user_id }, { $inc: { wallet_balance: payout } });
+      }
+      return null;
+    })
+  );
+  void creditOps;
 
   const final = {
     current_timestamp: moment().toDate(),

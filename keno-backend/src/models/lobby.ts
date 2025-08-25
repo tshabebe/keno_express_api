@@ -4,6 +4,7 @@ const LobbySchema = new Schema({
   name: { type: String, required: true },
   max_players: { type: Number, required: true, default: 10 },
   players: { type: [String], required: true, default: [] },
+  round_id: { type: String, required: false },
   created_at: { type: Date, default: () => new Date() },
   owner_id: { type: String, required: true }
 });
