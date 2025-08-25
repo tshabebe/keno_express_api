@@ -11,9 +11,9 @@ import Ticket from '../models/ticket';
 const router = Router();
 
 router.post('/drawnings', async (req, res) => {
-  const roundIdRaw = String((req.query as any).round_id || '');
+  const roundIdRaw = String((req.query as Record<string, unknown>).round_id || '');
 
-  let roundId: any = roundIdRaw;
+  let roundId: Types.ObjectId | string = roundIdRaw;
   try {
     roundId = new Types.ObjectId(roundIdRaw);
   } catch {
@@ -23,16 +23,22 @@ router.post('/drawnings', async (req, res) => {
   const round = await Round.findOne({ _id: roundId });
   if (!round) return res.json({ error: 'round not found' });
 
-  let drawn = await Drawning.findOne({ round_id: roundIdRaw });
+  let drawn = await Drawning.findOne({ round_id: roundIdRaw }).lean<{ round_id: string; drawn_number: number[]; created_at: Date }>();
   if (!drawn) {
-    const doc: any = { round_id: roundIdRaw, created_at: moment().toDate() };
-    doc.drawn_number = loadDrawning();
-    drawn = await Drawning.create(doc);
+    const doc: { round_id: string; drawn_number: number[]; created_at: Date } = {
+      round_id: roundIdRaw,
+      drawn_number: loadDrawning(),
+      created_at: moment().toDate()
+    };
+    const created = await Drawning.create(doc);
+    drawn = created.toObject();
   }
 
-  const tickets = await Ticket.find({ round_id: roundIdRaw }).lean();
-  const winnings = tickets.filter((ticket: any) => {
-    const match = _.intersection((drawn as any).drawn_number, ticket.played_number);
+  const tickets: Array<{ played_number: number[] }> = await Ticket.find({ round_id: roundIdRaw })
+    .select('played_number')
+    .lean();
+  const winnings = tickets.filter((ticket: { played_number: number[] }) => {
+    const match = _.intersection(drawn!.drawn_number, ticket.played_number);
     return match.length >= 5;
   });
 
@@ -42,7 +48,7 @@ router.post('/drawnings', async (req, res) => {
     winnings,
   };
   try {
-    const io: SocketIOServer | undefined = (req.app as any).get('io');
+    const io = req.app.locals.io as SocketIOServer | undefined;
     io?.to(`lobby:${roundIdRaw}`).emit('draw:completed', final);
   } catch {}
   res.json(final);

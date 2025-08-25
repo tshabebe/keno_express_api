@@ -12,18 +12,19 @@ router.get('/tickets', async (_req, res) => {
 });
 
 router.post('/tickets', async (req, res) => {
-  const q: any = req.query; // original behavior
   const createdAt = moment().toDate();
 
-  const compacted = compactNumbers({ ...q });
+  const rawQuery = req.query as Record<string, unknown>;
+  const compacted = compactNumbers({ ...rawQuery });
   if (!compacted) return res.json('input not valid');
 
-  const ticket: any = { ...compacted, created_at: createdAt };
+  const roundIdRaw = String(rawQuery.round_id || '');
+  const ticket = { round_id: roundIdRaw, played_number: compacted.played_number, created_at: createdAt };
 
   const result = await Ticket.create(ticket);
   try {
-    const io: SocketIOServer | undefined = (req.app as any).get('io');
-    io?.to(`lobby:${ticket.round_id || ''}`).emit('ticket:created', { id: (result as any)._id, ...ticket });
+    const io = req.app.locals.io as SocketIOServer | undefined;
+    io?.to(`lobby:${ticket.round_id || ''}`).emit('ticket:created', { id: String(result._id), ...ticket });
   } catch {}
   res.json(result);
 });
