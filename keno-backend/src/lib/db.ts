@@ -4,10 +4,11 @@ let isConnected = false;
 
 export async function connectDb(): Promise<typeof mongoose> {
   if (isConnected) return mongoose;
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/keno_express_api';
-  await mongoose.connect(uri, {
-    // keep options minimal; mongoose v8 uses MongoDB driver v5+ defaults
-  });
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI environment variable is not set');
+  }
+  await mongoose.connect(uri);
   isConnected = true;
   return mongoose;
 }
