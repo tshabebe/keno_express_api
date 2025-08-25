@@ -28,7 +28,7 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
       ? (decoded as { email?: string }).email
       : undefined;
 
-    req.user = { userId, email };
+    (req as any).user = { userId, email };
     return next();
   } catch (e) {
     return res.status(401).json({ error: 'invalid token' });

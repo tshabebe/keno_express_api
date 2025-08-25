@@ -11,7 +11,7 @@ router.get('/lobbies', async (_req, res) => {
 
 router.post('/lobbies', authRequired, async (req, res) => {
   const { name, maxPlayers } = req.body || {};
-  const ownerId = req.user?.userId as string;
+  const ownerId = (req as any).user?.userId as string;
   const lobby: LobbyDoc = await Lobby.create({ name: name || 'Lobby', max_players: maxPlayers || 10, players: [], owner_id: ownerId });
   res.json({ id: String(lobby._id), ...lobby.toObject() });
 });
@@ -20,7 +20,7 @@ router.post('/lobbies/:id/join', authRequired, async (req, res) => {
   const id = req.params.id;
   const lobby = await Lobby.findById(id);
   if (!lobby) return res.status(404).json({ error: 'not found' });
-  const userId = req.user?.userId as string;
+  const userId = (req as any).user?.userId as string;
   const players: string[] = lobby.players || [];
   if (players.includes(userId)) return res.json({ ok: true });
   if ((players.length || 0) >= (lobby.max_players || 10)) return res.status(400).json({ error: 'lobby full' });
@@ -30,7 +30,7 @@ router.post('/lobbies/:id/join', authRequired, async (req, res) => {
 
 router.post('/lobbies/:id/leave', authRequired, async (req, res) => {
   const id = req.params.id;
-  const userId = req.user?.userId as string;
+  const userId = (req as any).user?.userId as string;
   await Lobby.updateOne({ _id: id }, { $pull: { players: userId } });
   res.json({ ok: true });
 });

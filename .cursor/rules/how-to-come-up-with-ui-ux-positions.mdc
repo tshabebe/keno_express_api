@@ -1,0 +1,13 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+how to come up with best ui/ux positions
+
+what you first do is that to not create a complex layout start from the most important part to be seen by the user and give them percentages based on the importance of the feature
+
+lets say that the most important feature is like 90% it becomes and holds the most ui/ux visible place that is accessible by the user if it is low it can be hidden with drop-downs and much more if they are equal they become an equal cards, tabs, navigation tabs something that is rendered equally use all the ui/ux principles to emphasize and deemphasize
+
+first what you do is to get all the features written down or be in a plan and give them percentages so that you can create layouts
