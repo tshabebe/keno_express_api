@@ -10,9 +10,9 @@ router.get('/lobbies', async (_req, res) => {
 });
 
 router.post('/lobbies', authRequired, async (req, res) => {
-  const { name, maxPlayers } = req.body || {};
+  const { name, maxPlayers, roundId } = req.body || {};
   const ownerId = (req as any).user?.userId as string;
-  const lobby: LobbyDoc = await Lobby.create({ name: name || 'Lobby', max_players: maxPlayers || 10, players: [], owner_id: ownerId });
+  const lobby: LobbyDoc = await Lobby.create({ name: name || 'Lobby', max_players: maxPlayers || 10, players: [], owner_id: ownerId, round_id: roundId });
   res.json({ id: String(lobby._id), ...lobby.toObject() });
 });
 
@@ -25,6 +25,13 @@ router.post('/lobbies/:id/join', authRequired, async (req, res) => {
   if (players.includes(userId)) return res.json({ ok: true });
   if ((players.length || 0) >= (lobby.max_players || 10)) return res.status(400).json({ error: 'lobby full' });
   await Lobby.updateOne({ _id: lobby._id }, { $addToSet: { players: userId } });
+  res.json({ ok: true });
+});
+
+router.post('/lobbies/:id/round', authRequired, async (req, res) => {
+  const id = req.params.id;
+  const { roundId } = req.body || {};
+  await Lobby.updateOne({ _id: id }, { $set: { round_id: roundId } });
   res.json({ ok: true });
 });
 

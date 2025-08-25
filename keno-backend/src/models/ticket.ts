@@ -3,6 +3,8 @@ import mongoose, { Schema, type Model, type InferSchemaType, type HydratedDocume
 const TicketSchema = new Schema({
   round_id: { type: String, required: true, index: true },
   played_number: { type: [Number], required: true },
+  bet_amount: { type: Number, required: true, default: 0 },
+  user_id: { type: String, required: false },
   created_at: { type: Date, default: () => new Date() }
 });
 

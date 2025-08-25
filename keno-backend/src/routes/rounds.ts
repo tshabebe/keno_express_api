@@ -27,6 +27,15 @@ router.post('/rounds', async (req, res) => {
   res.json(created);
 });
 
+router.get('/rounds/current', async (_req, res) => {
+  const now = moment();
+  const round = await Round.findOne({ starts_at: { $lte: now.toDate() }, ends_at: { $gte: now.toDate() } })
+    .sort({ starts_at: -1 })
+    .lean();
+  if (!round) return res.status(404).json({ error: 'no active round' });
+  res.json(round);
+});
+
 router.delete('/rounds/:id', async (_req, res) => {
   res.json('TODO DELETE');
 });
