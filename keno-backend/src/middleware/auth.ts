@@ -12,7 +12,23 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'missing token' });
   try {
-    (req as any).user = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    if (
+      typeof decoded !== 'object' ||
+      decoded === null ||
+      !('userId' in decoded) ||
+      typeof (decoded as { userId?: unknown }).userId !== 'string'
+    ) {
+      return res.status(401).json({ error: 'invalid token' });
+    }
+
+    const userId = (decoded as { userId: string }).userId;
+    const email = 'email' in decoded && typeof (decoded as { email?: unknown }).email === 'string'
+      ? (decoded as { email?: string }).email
+      : undefined;
+
+    req.user = { userId, email };
     return next();
   } catch (e) {
     return res.status(401).json({ error: 'invalid token' });

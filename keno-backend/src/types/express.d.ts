@@ -5,8 +5,10 @@ declare module 'express-serve-static-core' {
     user?: {
       userId: string;
       email?: string;
-      [key: string]: any;
     };
+  }
+  interface Locals {
+    io?: import('socket.io').Server;
   }
 }
 

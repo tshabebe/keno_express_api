@@ -17,7 +17,7 @@ import { connectDb } from './lib/db';
 const app = express();
 const server = http.createServer(app);
 const io = new SocketIOServer(server, { cors: { origin: '*'} });
-app.set('io', io);
+app.locals.io = io;
 
 app.use(cors());
 app.use(morgan('dev'));
@@ -40,9 +40,15 @@ app.use((_req, _res, next) => {
   next(createError(404));
 });
 
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  res.status(err.status || 500);
-  res.json({ message: err.message });
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = typeof err === 'object' && err !== null && 'status' in err && typeof (err as { status?: unknown }).status === 'number'
+    ? (err as { status?: number }).status!
+    : 500;
+  const message = typeof err === 'object' && err !== null && 'message' in err
+    ? String((err as { message?: unknown }).message ?? 'Error')
+    : 'Internal Server Error';
+  res.status(status);
+  res.json({ message });
 });
 
 io.on('connection', (socket) => {

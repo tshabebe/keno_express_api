@@ -2,21 +2,24 @@ import _ from 'lodash';
 import moment, { Moment } from 'moment';
 
 export function parseDate(input: string): Moment | false {
-  return moment();
+  const parsed = moment(input, moment.ISO_8601, true);
+  return parsed.isValid() ? parsed : false;
 }
 
-export function compactNumbers(query: Record<string, any>): false | Record<string, any> {
+export type CompactNumbersResult = { played_number: number[] } & Record<string, unknown>;
+
+export function compactNumbers(query: Record<string, unknown>): false | CompactNumbersResult {
   const result = [
-    parseInt(query.number_one, 10),
-    parseInt(query.number_two, 10),
-    parseInt(query.number_three, 10),
-    parseInt(query.number_four, 10),
-    parseInt(query.number_five, 10),
-    parseInt(query.number_six, 10),
-    parseInt(query.number_seven, 10),
-    parseInt(query.number_eight, 10),
-    parseInt(query.number_nine, 10),
-    parseInt(query.number_ten, 10)
+    parseInt(String((query as Record<string, unknown>).number_one), 10),
+    parseInt(String((query as Record<string, unknown>).number_two), 10),
+    parseInt(String((query as Record<string, unknown>).number_three), 10),
+    parseInt(String((query as Record<string, unknown>).number_four), 10),
+    parseInt(String((query as Record<string, unknown>).number_five), 10),
+    parseInt(String((query as Record<string, unknown>).number_six), 10),
+    parseInt(String((query as Record<string, unknown>).number_seven), 10),
+    parseInt(String((query as Record<string, unknown>).number_eight), 10),
+    parseInt(String((query as Record<string, unknown>).number_nine), 10),
+    parseInt(String((query as Record<string, unknown>).number_ten), 10)
   ];
 
   let played = _.compact(result);
@@ -25,18 +28,18 @@ export function compactNumbers(query: Record<string, any>): false | Record<strin
 
   if (played.length < 5) return false;
 
-  const cleaned = { ...query };
-  delete cleaned.number_one;
-  delete cleaned.number_two;
-  delete cleaned.number_three;
-  delete cleaned.number_four;
-  delete cleaned.number_five;
-  delete cleaned.number_six;
-  delete cleaned.number_seven;
-  delete cleaned.number_eight;
-  delete cleaned.number_nine;
-  delete cleaned.number_ten;
+  const cleaned: Record<string, unknown> = { ...query };
+  delete (cleaned as Record<string, unknown>).number_one;
+  delete (cleaned as Record<string, unknown>).number_two;
+  delete (cleaned as Record<string, unknown>).number_three;
+  delete (cleaned as Record<string, unknown>).number_four;
+  delete (cleaned as Record<string, unknown>).number_five;
+  delete (cleaned as Record<string, unknown>).number_six;
+  delete (cleaned as Record<string, unknown>).number_seven;
+  delete (cleaned as Record<string, unknown>).number_eight;
+  delete (cleaned as Record<string, unknown>).number_nine;
+  delete (cleaned as Record<string, unknown>).number_ten;
 
-  cleaned.played_number = played;
-  return cleaned;
+  (cleaned as { played_number: number[] }).played_number = played;
+  return cleaned as CompactNumbersResult;
 }
