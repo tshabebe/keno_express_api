@@ -6,7 +6,7 @@ const router = Router();
 
 router.get('/lobbies', async (_req, res) => {
   const items = await Lobby.find();
-  res.json(items);
+  res.json(items.map((l) => ({ id: String((l as any)._id), ...(l as any).toObject ? (l as any).toObject() : l })));
 });
 
 router.post('/lobbies', authRequired, async (req, res) => {

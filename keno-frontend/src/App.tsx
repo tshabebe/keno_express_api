@@ -5,7 +5,7 @@ import BetControls from './features/keno/BetControls'
 import ResultsPanel from './features/keno/ResultsPanel'
 import HistoryPanel from './features/keno/HistoryPanel'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
-import { createTicket, getCurrentRound, getRounds, postDraw } from './lib/api'
+import { createTicket, getCurrentRound, postDraw } from './lib/api'
 import { getSocket, joinLobby } from './lib/socket'
 import { useAuth } from './context/AuthContext'
 import { getMe } from './lib/auth'
@@ -87,6 +87,18 @@ export default function App() {
     const s = getSocket()
     if (currentRoundId) joinLobby(currentRoundId)
 
+    const onDrawStarted = (_payload: { roundId: string; totalCalls: number }) => {
+      setIsDrawing(true)
+      setDrawnNumbers([])
+    }
+
+    const onDrawNumber = (payload: { roundId: string; number: number; index: number }) => {
+      setDrawnNumbers((prev) => {
+        if (prev.includes(payload.number)) return prev
+        return [...prev, payload.number]
+      })
+    }
+
     const onDrawCompleted = async (payload: { drawn: { drawn_number: number[] }; winnings: Array<{ played_number: number[] }> }) => {
       const drawn = payload?.drawn?.drawn_number || []
       setDrawnNumbers(drawn)
@@ -113,11 +125,16 @@ export default function App() {
         ])
         setLastBet(null)
       }
+      setIsDrawing(false)
     }
 
+    s.on('draw:started', onDrawStarted)
+    s.on('draw:number', onDrawNumber)
     s.on('draw:completed', onDrawCompleted)
 
     return () => {
+      s.off('draw:started', onDrawStarted)
+      s.off('draw:number', onDrawNumber)
       s.off('draw:completed', onDrawCompleted)
     }
   }, [currentRoundId, lastBet])
