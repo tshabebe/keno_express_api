@@ -63,7 +63,21 @@ router.post('/drawnings', async (req, res) => {
   };
   try {
     const io = req.app.locals.io as SocketIOServer | undefined;
-    io?.to(`lobby:${roundIdRaw}`).emit('draw:completed', final);
+    const room = `lobby:${roundIdRaw}`;
+    const numbers = Array.isArray(drawn?.drawn_number) ? [...drawn.drawn_number] : [];
+    // announce start
+    io?.to(room).emit('draw:started', { roundId: roundIdRaw, totalCalls: numbers.length });
+    // stream numbers one by one
+    const intervalMs = 500;
+    numbers.forEach((num, index) => {
+      setTimeout(() => {
+        io?.to(room).emit('draw:number', { roundId: roundIdRaw, number: num, index });
+      }, intervalMs * index);
+    });
+    // finalize
+    setTimeout(() => {
+      io?.to(room).emit('draw:completed', final);
+    }, intervalMs * numbers.length);
   } catch {}
   res.json(final);
 });
