@@ -4,6 +4,7 @@ import { compactNumbers } from '../lib/helper';
 import type { Server as SocketIOServer } from 'socket.io';
 import Ticket from '../models/ticket';
 import { verifyWalletToken } from '../middleware/wallet';
+import Session from '../models/session';
 
 const router = Router();
 
@@ -20,6 +21,10 @@ router.post('/tickets', verifyWalletToken, async (req, res) => {
   if (!compacted) return res.json('input not valid');
 
   const roundIdRaw = String(rawQuery.round_id || '');
+  // enforce current session select phase and round
+  const session = await Session.findOne().lean<{ status?: string; current_round_id?: string; phase_ends_at?: Date }>();
+  if (!session || session.status !== 'select' || !session.current_round_id) return res.status(400).json({ error: 'not in select phase' });
+  if (!roundIdRaw || roundIdRaw !== session.current_round_id) return res.status(400).json({ error: 'invalid round' });
   const betAmount = Number((req.body as any)?.bet_amount ?? (rawQuery as any)?.bet_amount ?? 0);
   const walletUser: any = (req as any).user || {};
   const userId = walletUser.chatId || walletUser.user_id || walletUser.id || walletUser.userId;

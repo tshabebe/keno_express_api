@@ -16,3 +16,7 @@ export function joinLobby(lobbyId: string) {
   s.emit('lobby:join', lobbyId)
 }
 
+export function joinGlobalKeno() {
+  getSocket() // server auto-joins 'lobby:global' on connect
+}
+

@@ -34,11 +34,6 @@ export function restoreAuth(): AuthResponse | null {
   }
 }
 
-export function logout() {
-  setAuthToken(null)
-  localStorage.removeItem('auth')
-}
-
 export async function getMe(): Promise<{ id: string; email: string; displayName: string; balance: number } | null> {
   const res = await apiFetch(`${API_BASE}/me`)
   if (res.status === 401) return null

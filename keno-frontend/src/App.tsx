@@ -7,7 +7,7 @@ import ResultsPanel from './features/keno/ResultsPanel'
 import HistoryPanel from './features/keno/HistoryPanel'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
 import { createTicket, getCurrentRound, postDraw } from './lib/api'
-import { getSocket, joinLobby } from './lib/socket'
+import { getSocket, joinLobby, joinGlobalKeno } from './lib/socket'
 import { useAuth } from './context/AuthContext'
 import { getMe } from './lib/auth'
 
@@ -81,6 +81,7 @@ export default function App() {
 
   useEffect(() => {
     const s = getSocket()
+    joinGlobalKeno()
     if (currentRoundId) joinLobby(currentRoundId)
 
     const onDrawCompleted = async (payload: { drawn: { drawn_number: number[] }; winnings: Array<{ played_number: number[] }> }) => {
@@ -112,9 +113,14 @@ export default function App() {
     }
 
     s.on('draw:completed', onDrawCompleted)
+    const onPhase = (p: { status: 'select' | 'draw'; phaseEndsAt: string | Date; roundId: string }) => {
+      if (p?.roundId) setCurrentRoundId(p.roundId)
+    }
+    s.on('phase:update', onPhase)
 
     return () => {
       s.off('draw:completed', onDrawCompleted)
+      s.off('phase:update', onPhase)
     }
   }, [currentRoundId, lastBet])
 
