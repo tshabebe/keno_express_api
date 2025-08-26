@@ -3,8 +3,7 @@ import moment from 'moment';
 import { compactNumbers } from '../lib/helper';
 import type { Server as SocketIOServer } from 'socket.io';
 import Ticket from '../models/ticket';
-import User from '../models/user';
-import { authRequired } from '../middleware/auth';
+import { verifyWalletToken } from '../middleware/wallet';
 
 const router = Router();
 
@@ -13,7 +12,7 @@ router.get('/tickets', async (_req, res) => {
   res.json(results);
 });
 
-router.post('/tickets', authRequired, async (req, res) => {
+router.post('/tickets', verifyWalletToken, async (req, res) => {
   const createdAt = moment().toDate();
 
   const rawQuery = req.query as Record<string, unknown>;
@@ -22,17 +21,45 @@ router.post('/tickets', authRequired, async (req, res) => {
 
   const roundIdRaw = String(rawQuery.round_id || '');
   const betAmount = Number((req.body as any)?.bet_amount ?? (rawQuery as any)?.bet_amount ?? 0);
-  const userId = (req as any).user?.userId as string | undefined;
-  if (!userId) return res.status(401).json({ error: 'unauthorized' });
+  const walletUser: any = (req as any).user || {};
+  const userId = walletUser.chatId || walletUser.user_id || walletUser.id || walletUser.userId;
+  const username = walletUser.username || walletUser.email || walletUser.displayName || 'player';
+  const token = (req as any).token as string;
+  if (!userId || !token) return res.status(401).json({ error: 'unauthorized' });
   if (!(betAmount > 0)) return res.status(400).json({ error: 'invalid bet amount' });
 
-  // deduct bet from user wallet
-  const user = await User.findById(userId).lean<{ wallet_balance?: number }>();
-  const currentBalance = Number(user?.wallet_balance || 0);
-  if (currentBalance < betAmount) return res.status(400).json({ error: 'insufficient balance' });
-  await User.updateOne({ _id: userId }, { $inc: { wallet_balance: -betAmount } });
+  // wallet debit
+  const WALLET_URL = process.env.WALLET_URL || process.env.walletUrl || '';
+  const SHARED_SECRET_BINGO = process.env.SHARED_SECRET_BINGO || process.env.PASS_KEY || '';
+  try {
+    const debitBody = {
+      user_id: userId,
+      username,
+      transaction_type: 'debit',
+      transaction_id: `BET-${Date.now()}`,
+      amount: betAmount,
+      game: 'Keno',
+      round_id: roundIdRaw,
+      status: 'pending',
+    };
+    const resp = await fetch(`${WALLET_URL}/api/wallet/debit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'Pass-Key': SHARED_SECRET_BINGO,
+      },
+      body: JSON.stringify(debitBody),
+    });
+    if (!resp.ok) {
+      const err = await resp.text();
+      return res.status(400).json({ error: 'wallet debit failed', details: err });
+    }
+  } catch (e: any) {
+    return res.status(400).json({ error: 'wallet debit error', details: e?.message || String(e) });
+  }
 
-  const ticket = { round_id: roundIdRaw, played_number: compacted.played_number, bet_amount: betAmount, user_id: userId, created_at: createdAt };
+  const ticket = { round_id: roundIdRaw, played_number: compacted.played_number, bet_amount: betAmount, user_id: String(userId), username, user_token: token, created_at: createdAt };
 
   const result = await Ticket.create(ticket);
   try {

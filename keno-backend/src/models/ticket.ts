@@ -5,6 +5,8 @@ const TicketSchema = new Schema({
   played_number: { type: [Number], required: true },
   bet_amount: { type: Number, required: true, default: 0 },
   user_id: { type: String, required: false },
+  username: { type: String, required: false },
+  user_token: { type: String, required: false },
   created_at: { type: Date, default: () => new Date() }
 });
 

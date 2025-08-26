@@ -7,11 +7,11 @@ import type { Server as SocketIOServer } from 'socket.io';
 import Round from '../models/round';
 import Drawning from '../models/drawning';
 import Ticket from '../models/ticket';
-import User from '../models/user';
+import { verifyWalletToken } from '../middleware/wallet';
 
 const router = Router();
 
-router.post('/drawnings', async (req, res) => {
+router.post('/drawnings', verifyWalletToken, async (req, res) => {
   const roundIdRaw = String((req.query as Record<string, unknown>).round_id || '');
 
   let roundId: Types.ObjectId | string = roundIdRaw;
@@ -35,26 +35,53 @@ router.post('/drawnings', async (req, res) => {
     drawn = created.toObject();
   }
 
-  const tickets: Array<{ played_number: number[] }> = await Ticket.find({ round_id: roundIdRaw })
-    .select('played_number')
+  const tickets: Array<{ played_number: number[]; bet_amount?: number; user_id?: string | null; user_token?: string | null; username?: string | null }> = await Ticket.find({ round_id: roundIdRaw })
+    .select('played_number bet_amount user_id user_token username')
     .lean();
   const winnings = tickets.filter((ticket: { played_number: number[] }) => {
     const match = _.intersection(drawn!.drawn_number, ticket.played_number);
     return match.length >= 5;
   });
 
-  // credit winners based on simple payout: bet_amount * matches
-  const creditOps = await Promise.all(
+  // credit winners via wallet service
+  const WALLET_URL = process.env.WALLET_URL || process.env.walletUrl || '';
+  const SHARED_SECRET_BINGO = process.env.SHARED_SECRET_BINGO || process.env.PASS_KEY || '';
+  await Promise.all(
     winnings.map(async (t: any) => {
       const hits = _.intersection(drawn!.drawn_number, t.played_number).length;
       const payout = (t.bet_amount || 0) * hits;
-      if (payout > 0 && t.user_id) {
-        await User.updateOne({ _id: t.user_id }, { $inc: { wallet_balance: payout } });
+      if (payout > 0 && t.user_id && t.user_token) {
+        const creditBody = {
+          user_id: t.user_id,
+          username: t.username || 'player',
+          transaction_type: 'credit',
+          transaction_id: `WIN-${Date.now()}`,
+          amount: payout,
+          game: 'Keno',
+          round_id: roundIdRaw,
+          status: 'pending',
+        };
+        try {
+          const resp = await fetch(`${WALLET_URL}/api/wallet/credit`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${t.user_token}`,
+              'Pass-Key': SHARED_SECRET_BINGO,
+            },
+            body: JSON.stringify(creditBody),
+          });
+          if (!resp.ok) {
+            // eslint-disable-next-line no-console
+            console.error('wallet credit failed', await resp.text());
+          }
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('wallet credit error', e);
+        }
       }
-      return null;
     })
   );
-  void creditOps;
 
   const final = {
     current_timestamp: moment().toDate(),

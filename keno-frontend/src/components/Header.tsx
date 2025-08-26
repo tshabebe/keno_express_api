@@ -1,10 +1,7 @@
-import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import AuthModal from './AuthModal'
 
 export default function Header({ balance }: { balance: number }) {
-  const { user, signOut } = useAuth()
-  const [open, setOpen] = useState(false)
+  const { user } = useAuth()
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -21,20 +18,8 @@ export default function Header({ balance }: { balance: number }) {
         <div className="rounded-md bg-slate-800 px-3 py-2 text-sm text-slate-200">
           Balance: <span className="font-semibold text-slate-100">${balance.toFixed(2)}</span>
         </div>
-        {user ? (
-          <>
-            <span className="text-xs text-slate-400">{user.displayName || user.email}</span>
-            <button onClick={signOut} className="rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100">
-              Sign out
-            </button>
-          </>
-        ) : (
-          <button onClick={() => setOpen(true)} className="rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100">
-            Sign in
-          </button>
-        )}
+        {user && <span className="text-xs text-slate-400">{user.displayName || user.email}</span>}
       </div>
-      <AuthModal open={open} onClose={() => setOpen(false)} />
     </div>
   )
 }

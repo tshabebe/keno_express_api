@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
 import ResultsPanel from './features/keno/ResultsPanel'
 import HistoryPanel from './features/keno/HistoryPanel'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
-import { createTicket, getCurrentRound, getRounds, postDraw } from './lib/api'
+import { createTicket, getCurrentRound, postDraw } from './lib/api'
 import { getSocket, joinLobby } from './lib/socket'
 import { useAuth } from './context/AuthContext'
 import { getMe } from './lib/auth'
@@ -54,8 +55,6 @@ export default function App() {
   const onPlaceBet = async () => {
     if (selectedNumbers.length < 5 || betAmount <= 0) return
     try {
-      // require auth for server-side wallet deductions
-      // if not signed in, proceed in local-only mode
       if (!currentRoundId) {
         const cur = await getCurrentRound()
         if (cur) setCurrentRoundId(cur._id)
@@ -65,14 +64,12 @@ export default function App() {
       await createTicket({ roundId, numbers: selectedNumbers.slice(0, 10), betAmount })
       setLastBet({ picks: selectedNumbers.slice().sort((a, b) => a - b), amount: betAmount })
       setIsDrawing(true)
-      // trigger draw on backend; updates will also arrive via socket
       await postDraw(roundId)
     } finally {
       setIsDrawing(false)
     }
   }
 
-  // load current round once
   useEffect(() => {
     (async () => {
       try {
@@ -82,7 +79,6 @@ export default function App() {
     })()
   }, [])
 
-  // socket setup
   useEffect(() => {
     const s = getSocket()
     if (currentRoundId) joinLobby(currentRoundId)
@@ -122,7 +118,7 @@ export default function App() {
     }
   }, [currentRoundId, lastBet])
 
-  return (
+  const Main = (
     <Layout balance={balance}>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -149,5 +145,18 @@ export default function App() {
         </div>
       </div>
     </Layout>
+  )
+
+  const Loading = (
+    <div className="min-h-screen grid place-items-center text-slate-300">
+      <div className="text-sm">Loading…</div>
+    </div>
+  )
+
+  return (
+    <Routes>
+      <Route path="/" element={user ? Main : Loading} />
+      <Route path="/keno" element={user ? Main : Loading} />
+    </Routes>
   )
 }
