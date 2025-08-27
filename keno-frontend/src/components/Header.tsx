@@ -1,7 +1,7 @@
 import { useAuth } from '../context/AuthContext'
 
-export default function Header({ balance }: { balance: number }) {
-  const { user } = useAuth()
+export default function Header() {
+  const { user, balance } = useAuth()
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">

@@ -7,22 +7,23 @@ import ResultsPanel from './features/keno/ResultsPanel'
 import HistoryPanel from './features/keno/HistoryPanel'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
 import { createTicket, getCurrentRound, postDraw } from './lib/api'
-import { getSocket, joinLobby, joinGlobalKeno } from './lib/socket'
+import { getSocket, joinGlobalKeno, joinRoundRoom } from './lib/socket'
 import { useAuth } from './context/AuthContext'
 import { getMe } from './lib/auth'
 
 const MAX_PICKS = 10
 
 export default function App() {
-  const { user } = useAuth()
+  const { user, balance: ctxBalance, setBalance } = useAuth()
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
   const [betAmount, setBetAmount] = useState<number>(1)
-  const [balance, setBalance] = useState<number>(1000)
+  const [, setLocalBalance] = useState<number>(1000)
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([])
   const [isDrawing, setIsDrawing] = useState<boolean>(false)
   const [history, setHistory] = useState<any[]>([])
   const [currentRoundId, setCurrentRoundId] = useState<string>('')
   const [lastBet, setLastBet] = useState<{ picks: number[]; amount: number } | null>(null)
+  const [phaseStatus, setPhaseStatus] = useState<'idle' | 'select' | 'draw'>('idle')
 
   const onToggleNumber = (value: number) => {
     setSelectedNumbers((prev) =>
@@ -50,16 +51,12 @@ export default function App() {
 
   const onClear = () => setSelectedNumbers([])
 
-  const isPlaceBetDisabled = useMemo(() => selectedNumbers.length < 5 || betAmount <= 0 || !user, [selectedNumbers.length, betAmount, user])
+  const isPlaceBetDisabled = useMemo(() => selectedNumbers.length < 5 || betAmount <= 0 || !user || phaseStatus !== 'select', [selectedNumbers.length, betAmount, user, phaseStatus])
 
   const onPlaceBet = async () => {
-    if (selectedNumbers.length < 5 || betAmount <= 0) return
+    if (selectedNumbers.length < 5 || betAmount <= 0 || phaseStatus !== 'select') return
     try {
-      if (!currentRoundId) {
-        const cur = await getCurrentRound()
-        if (cur) setCurrentRoundId(cur._id)
-      }
-      const roundId = currentRoundId || (await getCurrentRound())?._id || ''
+      const roundId = currentRoundId || ''
       if (!roundId) return
       await createTicket({ roundId, numbers: selectedNumbers.slice(0, 10), betAmount })
       setLastBet({ picks: selectedNumbers.slice().sort((a, b) => a - b), amount: betAmount })
@@ -82,7 +79,7 @@ export default function App() {
   useEffect(() => {
     const s = getSocket()
     joinGlobalKeno()
-    if (currentRoundId) joinLobby(currentRoundId)
+    if (currentRoundId) joinRoundRoom(currentRoundId)
 
     const onDrawCompleted = async (payload: { drawn: { drawn_number: number[] }; winnings: Array<{ played_number: number[] }> }) => {
       const drawn = payload?.drawn?.drawn_number || []
@@ -92,10 +89,16 @@ export default function App() {
         const payout = hits >= 5 ? lastBet.amount * hits : 0
         try {
           const me = await getMe()
-          if (me) setBalance(me.balance)
-          else setBalance((b) => b - lastBet.amount + payout)
+          if (me) {
+            setLocalBalance(me.balance)
+            setBalance(me.balance)
+          } else {
+            setLocalBalance((b) => b - lastBet.amount + payout)
+            setBalance((ctxBalance || 0) - lastBet.amount + payout)
+          }
         } catch {
-          setBalance((b) => b - lastBet.amount + payout)
+          setLocalBalance((b) => b - lastBet.amount + payout)
+          setBalance((ctxBalance || 0) - lastBet.amount + payout)
         }
         setHistory((h) => [
           {
@@ -114,7 +117,13 @@ export default function App() {
 
     s.on('draw:completed', onDrawCompleted)
     const onPhase = (p: { status: 'select' | 'draw'; phaseEndsAt: string | Date; roundId: string }) => {
-      if (p?.roundId) setCurrentRoundId(p.roundId)
+      if (p?.roundId) {
+        if (p.roundId !== currentRoundId) {
+          setCurrentRoundId(p.roundId)
+          joinRoundRoom(p.roundId)
+        }
+      }
+      setPhaseStatus(p.status)
     }
     s.on('phase:update', onPhase)
 
@@ -122,10 +131,10 @@ export default function App() {
       s.off('draw:completed', onDrawCompleted)
       s.off('phase:update', onPhase)
     }
-  }, [currentRoundId, lastBet])
+  }, [currentRoundId, lastBet, ctxBalance])
 
   const Main = (
-    <Layout balance={balance}>
+    <Layout>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <KenoBoard selectedNumbers={selectedNumbers} onToggleNumber={onToggleNumber} maxPicks={MAX_PICKS} />

@@ -96,7 +96,7 @@ async function runDraw(roundIdRaw: string) {
     drawn = created.toObject();
   }
   const payload = { current_timestamp: moment().toDate(), drawn, winnings: [] as any[] };
-  io.to('lobby:global').emit('draw:completed', payload);
+  io.to(`lobby:${roundIdRaw}`).emit('draw:completed', payload);
 }
 
 setInterval(async () => {

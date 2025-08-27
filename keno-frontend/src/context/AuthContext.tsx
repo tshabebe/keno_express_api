@@ -8,6 +8,7 @@ type AuthContextType = {
   user: AuthResponse['user'] | null
   token: string | null
   balance: number
+  setBalance: (value: number) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     token,
     balance,
+    setBalance,
   }), [user, token, balance])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
