@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import moment from 'moment';
 import { parseDate } from '../lib/helper';
+import { z } from 'zod';
 import Round from '../models/round';
 
 const router = Router();
@@ -11,11 +12,10 @@ router.get('/rounds', async (_req, res) => {
 });
 
 router.post('/rounds', async (req, res) => {
-  const startsAtRaw = String((req.query as Record<string, unknown>).starts_at || '');
-  if (!startsAtRaw) {
-    return res.json({ error: 'Invalid date' });
-  }
-  const startsAt = parseDate(startsAtRaw);
+  const StartsSchema = z.object({ starts_at: z.string().min(1) });
+  const parsed = StartsSchema.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid date' });
+  const startsAt = parseDate(parsed.data.starts_at);
   if (!startsAt) return res.json({ error: 'Invalid date' });
   const endsAt = startsAt.clone().add(15, 'days');
 
