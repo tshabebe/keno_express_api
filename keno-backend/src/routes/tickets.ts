@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import moment from 'moment';
+import { } from 'date-fns';
 import { ticketBodySchema, ticketQuerySchema } from '../schemas/ticket';
 import type { Server as SocketIOServer } from 'socket.io';
 import Ticket from '../models/ticket';
@@ -14,7 +14,7 @@ router.get('/tickets', async (_req, res) => {
 });
 
 router.post('/tickets', verifyWalletToken, async (req, res) => {
-  const createdAt = moment().toDate();
+  const createdAt = new Date();
 
   const parseQuery = ticketQuerySchema.safeParse(req.query);
   if (!parseQuery.success) return res.status(400).json({ error: 'input not valid', details: parseQuery.error.flatten() });

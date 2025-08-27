@@ -40,6 +40,8 @@ export default function RoundsPanel({ onSelect }: { onSelect: (roundId: string) 
     }
   }
 
+  const toDateString = (v?: string | Date) => typeof v === 'string' ? v : v ? new Date(v).toISOString() : ''
+
   return (
     <section className="rounded-lg bg-slate-900 p-3 sm:p-4">
       <div className="flex items-center justify-between">
@@ -58,7 +60,7 @@ export default function RoundsPanel({ onSelect }: { onSelect: (roundId: string) 
               className={`flex items-center justify-between rounded-md px-3 py-2 text-left text-xs ${current === r._id ? 'bg-emerald-800 text-emerald-50' : 'bg-slate-800 text-slate-200'}`}
             >
               <span>Round {r._id.slice(-6)}</span>
-              <span className="text-slate-400">{(r.starts_at || '').slice(0,10)} → {(r.ends_at || '').slice(0,10)}</span>
+              <span className="text-slate-400">{toDateString(r.starts_at).slice(0,10)} → {toDateString(r.ends_at).slice(0,10)}</span>
             </button>
           ))
         )}

@@ -1,33 +1,31 @@
 import { apiFetch } from './http'
 import { getApiBaseUrl } from './env'
+import type { Round as SharedRound, Ticket as SharedTicket, DrawCompletedPayload } from 'shared/types'
+import { z } from 'zod'
+import { DrawCompletedSchema, RoundSchema, TicketSchema } from './api-validate'
 
 const API_BASE = getApiBaseUrl()
 
-export type Round = {
-  _id: string
-  starts_at?: string
-  ends_at?: string
-}
-
-export type Ticket = {
-  _id: string
-  round_id: string
-  played_number: number[]
-  created_at: string
-  bet_amount?: number
-}
+export type Round = SharedRound
+export type Ticket = SharedTicket
 
 export async function getRounds(): Promise<Round[]> {
   const res = await apiFetch(`${API_BASE}/rounds`)
   if (!res.ok) throw new Error('Failed to load rounds')
-  return res.json()
+  const data = await res.json()
+  const parsed = z.array(RoundSchema).safeParse(data)
+  if (!parsed.success) throw new Error('Invalid rounds payload')
+  return parsed.data
 }
 
 export async function getCurrentRound(): Promise<Round | null> {
   const res = await apiFetch(`${API_BASE}/rounds/current`)
   if (res.status === 404) return null
   if (!res.ok) throw new Error('Failed to load current round')
-  return res.json()
+  const data = await res.json()
+  const parsed = RoundSchema.safeParse(data)
+  if (!parsed.success) throw new Error('Invalid round payload')
+  return parsed.data
 }
 
 export async function createTicket(params: { roundId: string; numbers: number[]; betAmount: number }): Promise<Ticket> {
@@ -38,17 +36,19 @@ export async function createTicket(params: { roundId: string; numbers: number[];
   padded.forEach((n, idx) => qs.set(indexToParam(idx), String(n)))
   const res = await apiFetch(`${API_BASE}/tickets?${qs.toString()}`, { method: 'POST', body: JSON.stringify({ bet_amount: params.betAmount }) })
   if (!res.ok) throw new Error('Failed to create ticket')
-  return res.json()
+  const data = await res.json()
+  const parsed = TicketSchema.safeParse(data)
+  if (!parsed.success) throw new Error('Invalid ticket payload')
+  return parsed.data as any
 }
 
-export async function postDraw(roundId: string): Promise<{
-  current_timestamp: string
-  drawn: { round_id: string; drawn_number: number[]; created_at: string }
-  winnings: Array<{ played_number: number[] }>
-}> {
+export async function postDraw(roundId: string): Promise<DrawCompletedPayload> {
   const res = await apiFetch(`${API_BASE}/drawnings?round_id=${encodeURIComponent(roundId)}`, { method: 'POST' })
   if (!res.ok) throw new Error('Failed to run draw')
-  return res.json()
+  const data = await res.json()
+  const parsed = DrawCompletedSchema.safeParse(data)
+  if (!parsed.success) throw new Error('Invalid draw payload')
+  return parsed.data
 }
 
 export async function createTodayRound(): Promise<Round> {
