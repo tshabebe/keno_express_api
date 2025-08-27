@@ -16,7 +16,8 @@ import { connectDb } from './lib/db';
 import Session from './models/session';
 import Round from './models/round';
 import Drawning from './models/drawning';
-import moment from 'moment';
+import { } from 'date-fns';
+import { addSeconds, now, isSameOrAfter } from './lib/date';
 import { load as loadDrawning } from './lib/drawning_gateway';
 
 const app = express();
@@ -78,9 +79,9 @@ async function ensureSession() {
 }
 
 async function createNewRound(): Promise<string> {
-  const starts = moment();
-  const ends = starts.clone().add(1, 'day');
-  const round = await Round.create({ starts_at: starts.toDate(), ends_at: ends.toDate(), created_at: moment().toDate() });
+  const starts = now();
+  const ends = new Date(starts.getTime() + 24 * 60 * 60 * 1000);
+  const round = await Round.create({ starts_at: starts, ends_at: ends, created_at: now() });
   return String(round._id);
 }
 
@@ -90,19 +91,19 @@ async function runDraw(roundIdRaw: string) {
     const doc: { round_id: string; drawn_number: number[]; created_at: Date } = {
       round_id: roundIdRaw,
       drawn_number: loadDrawning(),
-      created_at: moment().toDate()
+      created_at: now()
     };
     const created = await Drawning.create(doc);
     drawn = created.toObject();
   }
-  const payload = { current_timestamp: moment().toDate(), drawn, winnings: [] as any[] };
+  const payload = { current_timestamp: now(), drawn, winnings: [] as any[] };
   io.to(`lobby:${roundIdRaw}`).emit('draw:completed', payload);
 }
 
 setInterval(async () => {
   try {
     const s = await ensureSession();
-    const now = moment();
+    const tnow = now();
 
     // count sockets in global room
     const room = io.sockets.adapter.rooms.get('lobby:global');
@@ -113,7 +114,7 @@ setInterval(async () => {
         const roundId = await createNewRound();
         s.status = 'select';
         s.current_round_id = roundId;
-        s.phase_ends_at = now.clone().add(SELECT_PHASE_SEC, 'seconds').toDate();
+        s.phase_ends_at = addSeconds(tnow, SELECT_PHASE_SEC);
         s.updated_at = new Date();
         await s.save();
         io.to('lobby:global').emit('phase:update', { status: s.status, phaseEndsAt: s.phase_ends_at, roundId });
@@ -121,11 +122,11 @@ setInterval(async () => {
       return;
     }
 
-    if (s.phase_ends_at && now.isSameOrAfter(moment(s.phase_ends_at))) {
+    if (s.phase_ends_at && isSameOrAfter(tnow, new Date(s.phase_ends_at))) {
       if (s.status === 'select') {
         // move to draw
         s.status = 'draw';
-        s.phase_ends_at = now.clone().add(DRAW_PHASE_SEC, 'seconds').toDate();
+        s.phase_ends_at = addSeconds(tnow, DRAW_PHASE_SEC);
         s.updated_at = new Date();
         await s.save();
         io.to('lobby:global').emit('phase:update', { status: s.status, phaseEndsAt: s.phase_ends_at, roundId: s.current_round_id });
@@ -135,7 +136,7 @@ setInterval(async () => {
         const roundId = await createNewRound();
         s.status = 'select';
         s.current_round_id = roundId;
-        s.phase_ends_at = now.clone().add(SELECT_PHASE_SEC, 'seconds').toDate();
+        s.phase_ends_at = addSeconds(tnow, SELECT_PHASE_SEC);
         s.updated_at = new Date();
         await s.save();
         io.to('lobby:global').emit('phase:update', { status: s.status, phaseEndsAt: s.phase_ends_at, roundId });

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import moment from 'moment';
-import { compactNumbers } from '../lib/helper';
+import { } from 'date-fns';
+import { ticketBodySchema, ticketQuerySchema } from '../schemas/ticket';
 import type { Server as SocketIOServer } from 'socket.io';
 import Ticket from '../models/ticket';
 import { verifyWalletToken } from '../middleware/wallet';
@@ -14,24 +14,23 @@ router.get('/tickets', async (_req, res) => {
 });
 
 router.post('/tickets', verifyWalletToken, async (req, res) => {
-  const createdAt = moment().toDate();
+  const createdAt = new Date();
 
-  const rawQuery = req.query as Record<string, unknown>;
-  const compacted = compactNumbers({ ...rawQuery });
-  if (!compacted) return res.json('input not valid');
-
-  const roundIdRaw = String(rawQuery.round_id || '');
+  const parseQuery = ticketQuerySchema.safeParse(req.query);
+  if (!parseQuery.success) return res.status(400).json({ error: 'input not valid', details: parseQuery.error.flatten() });
+  const { round_id: roundIdRaw, played_number } = parseQuery.data;
+  const parseBody = ticketBodySchema.safeParse(req.body);
+  if (!parseBody.success) return res.status(400).json({ error: 'invalid bet amount', details: parseBody.error.flatten() });
+  const betAmount = parseBody.data.bet_amount;
   // enforce current session select phase and round
   const session = await Session.findOne().lean<{ status?: string; current_round_id?: string; phase_ends_at?: Date }>();
   if (!session || session.status !== 'select' || !session.current_round_id) return res.status(400).json({ error: 'not in select phase' });
   if (!roundIdRaw || roundIdRaw !== session.current_round_id) return res.status(400).json({ error: 'invalid round' });
-  const betAmount = Number((req.body as any)?.bet_amount ?? (rawQuery as any)?.bet_amount ?? 0);
   const walletUser: any = (req as any).user || {};
   const userId = walletUser.chatId || walletUser.user_id || walletUser.id || walletUser.userId;
   const username = walletUser.username || walletUser.email || walletUser.displayName || 'player';
   const token = (req as any).token as string;
   if (!userId || !token) return res.status(401).json({ error: 'unauthorized' });
-  if (!(betAmount > 0)) return res.status(400).json({ error: 'invalid bet amount' });
 
   // wallet debit
   const WALLET_URL = process.env.WALLET_URL || process.env.walletUrl || '';
@@ -66,7 +65,7 @@ router.post('/tickets', verifyWalletToken, async (req, res) => {
     }
   }
 
-  const ticket = { round_id: roundIdRaw, played_number: compacted.played_number, bet_amount: betAmount, user_id: String(userId), username, user_token: token, created_at: createdAt };
+  const ticket = { round_id: roundIdRaw, played_number, bet_amount: betAmount, user_id: String(userId), username, user_token: token, created_at: createdAt };
 
   const result = await Ticket.create(ticket);
   try {

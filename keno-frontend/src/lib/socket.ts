@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client'
+import { getSocketUrl } from './env'
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+const SOCKET_URL = getSocketUrl()
 
 let socket: Socket | null = null
 

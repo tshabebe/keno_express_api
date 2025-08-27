@@ -1,9 +1,9 @@
 import _ from 'lodash';
-import moment, { Moment } from 'moment';
+import { parseISO, isValid } from 'date-fns';
 
-export function parseDate(input: string): Moment | false {
-  const parsed = moment(input, moment.ISO_8601, true);
-  return parsed.isValid() ? parsed : false;
+export function parseDate(input: string): Date | false {
+  const parsed = parseISO(input);
+  return isValid(parsed) ? parsed : false;
 }
 
 export type CompactNumbersResult = { played_number: number[] } & Record<string, unknown>;

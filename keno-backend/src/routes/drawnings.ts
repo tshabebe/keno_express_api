@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import _ from 'lodash';
-import moment from 'moment';
+import { } from 'date-fns';
 import { Types } from 'mongoose';
 import { load as loadDrawning } from '../lib/drawning_gateway';
 import type { Server as SocketIOServer } from 'socket.io';
@@ -36,7 +36,7 @@ router.post('/drawnings', verifyWalletToken, async (req, res) => {
     const doc: { round_id: string; drawn_number: number[]; created_at: Date } = {
       round_id: roundIdRaw,
       drawn_number: loadDrawning(),
-      created_at: moment().toDate()
+      created_at: new Date()
     };
     const created = await Drawning.create(doc);
     drawn = created.toObject();
@@ -93,7 +93,7 @@ router.post('/drawnings', verifyWalletToken, async (req, res) => {
   }
 
   const final = {
-    current_timestamp: moment().toDate(),
+    current_timestamp: new Date(),
     drawn,
     winnings,
   };
