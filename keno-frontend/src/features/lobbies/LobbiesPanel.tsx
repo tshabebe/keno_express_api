@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createLobby, joinLobbyApi, listLobbies, setLobbyRound, type Lobby } from '../../lib/lobbies'
+import { joinRoundRoom } from '../../lib/socket'
 import { useAuth } from '../../context/AuthContext'
 
 export default function LobbiesPanel({ currentRoundId }: { currentRoundId?: string }) {
@@ -37,6 +38,8 @@ export default function LobbiesPanel({ currentRoundId }: { currentRoundId?: stri
     try {
       setLoading(true)
       await joinLobbyApi(id)
+      const lobby = items.find((l) => l.id === id)
+      if (lobby?.round_id) joinRoundRoom(lobby.round_id)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed')
     } finally {

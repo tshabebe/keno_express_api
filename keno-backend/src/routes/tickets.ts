@@ -36,32 +36,34 @@ router.post('/tickets', verifyWalletToken, async (req, res) => {
   // wallet debit
   const WALLET_URL = process.env.WALLET_URL || process.env.walletUrl || '';
   const SHARED_SECRET_BINGO = process.env.SHARED_SECRET_BINGO || process.env.PASS_KEY || '';
-  try {
-    const debitBody = {
-      user_id: userId,
-      username,
-      transaction_type: 'debit',
-      transaction_id: `BET-${Date.now()}`,
-      amount: betAmount,
-      game: 'Keno',
-      round_id: roundIdRaw,
-      status: 'pending',
-    };
-    const resp = await fetch(`${WALLET_URL}/api/wallet/debit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        'Pass-Key': SHARED_SECRET_BINGO,
-      },
-      body: JSON.stringify(debitBody),
-    });
-    if (!resp.ok) {
-      const err = await resp.text();
-      return res.status(400).json({ error: 'wallet debit failed', details: err });
+  if (WALLET_URL) {
+    try {
+      const debitBody = {
+        user_id: userId,
+        username,
+        transaction_type: 'debit',
+        transaction_id: `BET-${Date.now()}`,
+        amount: betAmount,
+        game: 'Keno',
+        round_id: roundIdRaw,
+        status: 'pending',
+      };
+      const resp = await fetch(`${WALLET_URL}/api/wallet/debit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'Pass-Key': SHARED_SECRET_BINGO,
+        },
+        body: JSON.stringify(debitBody),
+      });
+      if (!resp.ok) {
+        const err = await resp.text();
+        return res.status(400).json({ error: 'wallet debit failed', details: err });
+      }
+    } catch (e: any) {
+      return res.status(400).json({ error: 'wallet debit error', details: e?.message || String(e) });
     }
-  } catch (e: any) {
-    return res.status(400).json({ error: 'wallet debit error', details: e?.message || String(e) });
   }
 
   const ticket = { round_id: roundIdRaw, played_number: compacted.played_number, bet_amount: betAmount, user_id: String(userId), username, user_token: token, created_at: createdAt };

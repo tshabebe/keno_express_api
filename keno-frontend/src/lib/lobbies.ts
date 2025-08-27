@@ -2,7 +2,7 @@ import { apiFetch } from './http'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
-export type Lobby = { id: string; name: string; max_players: number; players: string[]; owner_id: string }
+export type Lobby = { id: string; name: string; max_players: number; players: string[]; owner_id: string; round_id?: string }
 
 export async function listLobbies(): Promise<Lobby[]> {
   const res = await apiFetch(`${API_BASE}/lobbies`)

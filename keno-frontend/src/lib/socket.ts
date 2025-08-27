@@ -20,3 +20,8 @@ export function joinGlobalKeno() {
   getSocket() // server auto-joins 'lobby:global' on connect
 }
 
+export function joinRoundRoom(roundId: string) {
+  const s = getSocket()
+  s.emit('lobby:join', roundId)
+}
+
