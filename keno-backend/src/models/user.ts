@@ -2,6 +2,7 @@ import mongoose, { Schema, type Model, type InferSchemaType, type HydratedDocume
 
 const UserSchema = new Schema({
   email: { type: String, required: true, unique: true, index: true },
+  phone_number: { type: String, required: false, unique: true, sparse: true },
   password_hash: { type: String, required: true },
   display_name: { type: String, required: true },
   wallet_balance: { type: Number, required: true, default: 1000 },
