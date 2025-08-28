@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
@@ -10,6 +10,7 @@ import { createTicket, getCurrentRound, postDraw } from './lib/api'
 import { getSocket, joinGlobalKeno, joinRoundRoom } from './lib/socket'
 import { useAuth } from './context/AuthContext'
 import { getMe } from './lib/auth'
+import LoginPage from './features/auth/LoginPage'
 
 const MAX_PICKS = 10
 
@@ -162,16 +163,13 @@ export default function App() {
     </Layout>
   )
 
-  const Loading = (
-    <div className="min-h-screen grid place-items-center text-slate-300">
-      <div className="text-sm">Loading…</div>
-    </div>
-  )
+  const Login = <LoginPage />
 
   return (
     <Routes>
-      <Route path="/" element={user ? Main : Loading} />
-      <Route path="/keno" element={user ? Main : Loading} />
+      <Route path="/login" element={Login} />
+      <Route path="/" element={user ? Main : <Navigate to="/login" replace />} />
+      <Route path="/keno" element={user ? Main : <Navigate to="/login" replace />} />
     </Routes>
   )
 }

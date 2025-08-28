@@ -1,0 +1,23 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tshabebe/keno_express_api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tshabebe/keno_express_api/issues"
+  },
+  "homepage": "https://github.com/tshabebe/keno_express_api#readme",
+  "description": "",
+  "dependencies": {
+    "zod": "^4.1.4"
+  }
+}

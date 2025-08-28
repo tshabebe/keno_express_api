@@ -4,6 +4,7 @@ const UserSchema = new Schema({
   email: { type: String, required: true, unique: true, index: true },
   password_hash: { type: String, required: true },
   display_name: { type: String, required: true },
+  phone_number: { type: String, required: false, unique: true, sparse: true, index: true },
   wallet_balance: { type: Number, required: true, default: 1000 },
   created_at: { type: Date, default: () => new Date() }
 });
