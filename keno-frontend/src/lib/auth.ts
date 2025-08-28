@@ -14,7 +14,7 @@ export async function register(params: { email: string; password: string; displa
   return data
 }
 
-export async function login(params: { email: string; password: string }): Promise<AuthResponse> {
+export async function login(params: { email?: string; phoneNumber?: string; password: string }): Promise<AuthResponse> {
   const res = await apiFetch(`${API_BASE}/auth/login`, { method: 'POST', body: JSON.stringify(params) })
   if (!res.ok) throw new Error('Failed to login')
   const data = (await res.json()) as AuthResponse

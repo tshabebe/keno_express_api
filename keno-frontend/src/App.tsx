@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import LoginPage from './features/auth/LoginPage'
 import Layout from './components/Layout'
 import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
@@ -162,16 +163,13 @@ export default function App() {
     </Layout>
   )
 
-  const Loading = (
-    <div className="min-h-screen grid place-items-center text-slate-300">
-      <div className="text-sm">Loading…</div>
-    </div>
-  )
+  // removed unused Loading view; login route handles unauthenticated state
 
   return (
     <Routes>
-      <Route path="/" element={user ? Main : Loading} />
-      <Route path="/keno" element={user ? Main : Loading} />
+      <Route path="/" element={user ? Main : <Navigate to="/login" replace />} />
+      <Route path="/keno" element={user ? Main : <Navigate to="/login" replace />} />
+      <Route path="/login" element={user ? <Navigate to="/keno" replace /> : <LoginPage />} />
     </Routes>
   )
 }
