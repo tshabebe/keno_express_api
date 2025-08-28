@@ -18,7 +18,7 @@ export default function Header() {
         <div className="rounded-md bg-slate-800 px-3 py-2 text-sm text-slate-200">
           Balance: <span className="font-semibold text-slate-100">${balance.toFixed(2)}</span>
         </div>
-        {user && <span className="text-xs text-slate-400">{user.displayName || user.email}</span>}
+        {user && <span className="text-xs text-slate-400">{user.displayName}</span>}
       </div>
     </div>
   )

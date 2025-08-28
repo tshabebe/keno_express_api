@@ -39,7 +39,7 @@ router.post('/tickets', authRequired, async (req, res) => {
   );
   if (!updatedUser) return res.status(400).json({ error: 'insufficient balance' });
 
-  const username = updatedUser.display_name || updatedUser.email || 'player';
+  const username = updatedUser.display_name || 'player';
 
   const ticket = { round_id: roundIdRaw, played_number, bet_amount: betAmount, user_id: String(userId), username, created_at: createdAt } as const;
 

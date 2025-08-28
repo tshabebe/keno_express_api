@@ -8,7 +8,6 @@ import roundsRouter from './routes/rounds';
 import ticketsRouter from './routes/tickets';
 import drawningsRouter from './routes/drawnings';
 import usersRouter from './routes/users';
-import lobbiesRouter from './routes/lobbies';
 import matchmakingRouter from './routes/matchmaking';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -31,11 +30,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Disable caching for API responses to avoid 304 interfering with client logic
+app.use((_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 app.use('/', roundsRouter);
 app.use('/', ticketsRouter);
 app.use('/', drawningsRouter);
 app.use('/', usersRouter);
-app.use('/', lobbiesRouter);
 app.use('/', matchmakingRouter);
 
 app.get('/', (_req, res) => {
@@ -67,8 +71,8 @@ io.on('connection', (socket) => {
 });
 
 // Global session scheduler
-const SELECT_PHASE_SEC = parseInt(process.env.SELECT_PHASE_SEC || '30', 10);
-const DRAW_PHASE_SEC = parseInt(process.env.DRAW_PHASE_SEC || '30', 10);
+const SELECT_PHASE_SEC = parseInt(process.env.SELECT_PHASE_SEC || '10', 10);
+const DRAW_PHASE_SEC = parseInt(process.env.DRAW_PHASE_SEC || '10', 10);
 
 async function ensureSession() {
   let s = await Session.findOne();
@@ -152,6 +156,10 @@ const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 (async () => {
   try {
     await connectDb();
+    // Ensure indexes (handles sparse unique indexes updates)
+    await Promise.all([
+      import('./models/user').then(m => m.default.syncIndexes?.() || m.default.ensureIndexes?.()),
+    ]);
     server.listen(port, () => {
       // eslint-disable-next-line no-console
       console.log(`listening on ${port}`);

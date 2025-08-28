@@ -4,8 +4,33 @@ type ResultsPanelProps = {
   isDrawing: boolean
 }
 
+import { useEffect, useRef, useState } from 'react'
+
 export default function ResultsPanel({ drawnNumbers, selectedNumbers, isDrawing }: ResultsPanelProps) {
-  const matches = selectedNumbers.filter((n) => drawnNumbers.includes(n))
+  const [visible, setVisible] = useState<number[]>([])
+  const timerRef = useRef<number | null>(null)
+  const matches = selectedNumbers.filter((n) => visible.includes(n))
+
+  useEffect(() => {
+    // Animate number reveal when a new draw arrives
+    if (drawnNumbers.length === 0) {
+      setVisible([])
+      return
+    }
+    setVisible([])
+    let i = 0
+    const step = () => {
+      setVisible(drawnNumbers.slice(0, i))
+      i += 1
+      if (i <= drawnNumbers.length) {
+        timerRef.current = window.setTimeout(step, 250)
+      }
+    }
+    step()
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current)
+    }
+  }, [drawnNumbers.join(',')])
 
   return (
     <section className="rounded-lg bg-slate-900 p-3 sm:p-4">
@@ -15,10 +40,10 @@ export default function ResultsPanel({ drawnNumbers, selectedNumbers, isDrawing 
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5" aria-live="polite">
-        {drawnNumbers.length === 0 ? (
+        {visible.length === 0 ? (
           <span className="text-xs text-slate-500">No draws yet</span>
         ) : (
-          drawnNumbers.map((num, idx) => {
+          visible.map((num, idx) => {
             const isHit = selectedNumbers.includes(num)
             const base = 'rounded-md px-2 py-1 text-xs font-semibold'
             const style = isHit ? 'bg-emerald-800 text-emerald-50' : 'bg-slate-800 text-slate-200'
@@ -26,7 +51,7 @@ export default function ResultsPanel({ drawnNumbers, selectedNumbers, isDrawing 
               <span
                 key={`${num}-${idx}`}
                 className={`${base} ${style}`}
-                style={{ transition: 'opacity 200ms ease', opacity: isDrawing ? 0.7 : 1 }}
+                style={{ transition: 'opacity 200ms ease', opacity: isDrawing ? 0.9 : 1 }}
               >
                 {num}
               </span>

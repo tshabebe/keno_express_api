@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './features/auth/LoginPage'
+import RegisterPage from './features/auth/RegisterPage'
 import Layout from './components/Layout'
 import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
 import ResultsPanel from './features/keno/ResultsPanel'
 import HistoryPanel from './features/keno/HistoryPanel'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
-import { createTicket, getCurrentRound, postDraw } from './lib/api'
+import { createTicket, getCurrentRound } from './lib/api'
 import { getSocket, joinGlobalKeno, joinRoundRoom } from './lib/socket'
 import { useAuth } from './context/AuthContext'
 import { getMe } from './lib/auth'
@@ -20,7 +21,7 @@ export default function App() {
   const [betAmount, setBetAmount] = useState<number>(1)
   const [, setLocalBalance] = useState<number>(1000)
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([])
-  const [isDrawing, setIsDrawing] = useState<boolean>(false)
+  const [isDrawing] = useState<boolean>(false)
   const [history, setHistory] = useState<any[]>([])
   const [currentRoundId, setCurrentRoundId] = useState<string>('')
   const [lastBet, setLastBet] = useState<{ picks: number[]; amount: number } | null>(null)
@@ -61,10 +62,9 @@ export default function App() {
       if (!roundId) return
       await createTicket({ roundId, numbers: selectedNumbers.slice(0, 10), betAmount })
       setLastBet({ picks: selectedNumbers.slice().sort((a, b) => a - b), amount: betAmount })
-      setIsDrawing(true)
-      await postDraw(roundId)
+      // No manual draw trigger; server will broadcast automatically
     } finally {
-      setIsDrawing(false)
+      // keep state; ResultsPanel handles animation when draw event arrives
     }
   }
 
@@ -156,7 +156,7 @@ export default function App() {
             isPlaceBetDisabled={isPlaceBetDisabled}
           />
           <div className="mt-4">
-            <LobbiesPanel currentRoundId={currentRoundId} />
+            <LobbiesPanel />
           </div>
         </div>
       </div>
@@ -170,6 +170,7 @@ export default function App() {
       <Route path="/" element={user ? Main : <Navigate to="/login" replace />} />
       <Route path="/keno" element={user ? Main : <Navigate to="/login" replace />} />
       <Route path="/login" element={user ? <Navigate to="/keno" replace /> : <LoginPage />} />
+      <Route path="/register" element={user ? <Navigate to="/keno" replace /> : <RegisterPage />} />
     </Routes>
   )
 }

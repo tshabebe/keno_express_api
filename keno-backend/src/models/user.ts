@@ -1,13 +1,15 @@
 import mongoose, { Schema, type Model, type InferSchemaType, type HydratedDocument } from 'mongoose';
 
 const UserSchema = new Schema({
-  email: { type: String, required: true, unique: true, index: true },
-  phone_number: { type: String, required: false, unique: true, sparse: true },
+  phone_number: { type: String, required: true, unique: true, index: true },
   password_hash: { type: String, required: true },
   display_name: { type: String, required: true },
   wallet_balance: { type: Number, required: true, default: 1000 },
   created_at: { type: Date, default: () => new Date() }
 });
+
+// Unique index for phone numbers
+UserSchema.index({ phone_number: 1 }, { unique: true });
 
 export type User = InferSchemaType<typeof UserSchema>;
 export type UserDoc = HydratedDocument<User>;

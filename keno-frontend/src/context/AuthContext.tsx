@@ -8,6 +8,7 @@ type AuthContextType = {
   token: string | null
   balance: number
   setBalance: (value: number) => void
+  setSession: (auth: AuthResponse) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -29,11 +30,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // URL token handling removed; rely on local login/register only
 
+  const setSession = (auth: AuthResponse) => {
+    setUser(auth.user)
+    setToken(auth.token)
+    setBalance(auth.user.balance ?? 0)
+    setAuthToken(auth.token)
+    try { localStorage.setItem('auth', JSON.stringify(auth)) } catch {}
+  }
+
   const value = useMemo<AuthContextType>(() => ({
     user,
     token,
     balance,
     setBalance,
+    setSession,
   }), [user, token, balance])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

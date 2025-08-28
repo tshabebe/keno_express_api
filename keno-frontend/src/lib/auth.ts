@@ -3,9 +3,9 @@ import { getApiBaseUrl } from './env'
 
 const API_BASE = getApiBaseUrl()
 
-export type AuthResponse = { token: string; user: { id: string; email: string; displayName: string; balance?: number } }
+export type AuthResponse = { token: string; user: { id: string; displayName: string; balance?: number } }
 
-export async function register(params: { email: string; password: string; displayName?: string }): Promise<AuthResponse> {
+export async function register(params: { phoneNumber: string; password: string; displayName?: string }): Promise<AuthResponse> {
   const res = await apiFetch(`${API_BASE}/auth/register`, { method: 'POST', body: JSON.stringify(params) })
   if (!res.ok) throw new Error('Failed to register')
   const data = (await res.json()) as AuthResponse
@@ -14,7 +14,7 @@ export async function register(params: { email: string; password: string; displa
   return data
 }
 
-export async function login(params: { email?: string; phoneNumber?: string; password: string }): Promise<AuthResponse> {
+export async function login(params: { phoneNumber: string; password: string }): Promise<AuthResponse> {
   const res = await apiFetch(`${API_BASE}/auth/login`, { method: 'POST', body: JSON.stringify(params) })
   if (!res.ok) throw new Error('Failed to login')
   const data = (await res.json()) as AuthResponse
@@ -35,7 +35,7 @@ export function restoreAuth(): AuthResponse | null {
   }
 }
 
-export async function getMe(): Promise<{ id: string; email: string; displayName: string; balance: number } | null> {
+export async function getMe(): Promise<{ id: string; displayName: string; balance: number } | null> {
   const res = await apiFetch(`${API_BASE}/me`)
   if (res.status === 401) return null
   if (!res.ok) throw new Error('Failed to load profile')

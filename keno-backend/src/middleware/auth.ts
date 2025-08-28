@@ -24,11 +24,11 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
     }
 
     const userId = (decoded as { userId: string }).userId;
-    const email = 'email' in decoded && typeof (decoded as { email?: unknown }).email === 'string'
-      ? (decoded as { email?: string }).email
+    const phoneNumber = 'phoneNumber' in decoded && typeof (decoded as { phoneNumber?: unknown }).phoneNumber === 'string'
+      ? (decoded as { phoneNumber?: string }).phoneNumber
       : undefined;
 
-    (req as any).user = { userId, email };
+    (req as any).user = { userId, phoneNumber };
     return next();
   } catch (e) {
     return res.status(401).json({ error: 'invalid token' });
