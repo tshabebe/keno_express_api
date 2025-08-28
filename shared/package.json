@@ -1,0 +1,14 @@
+{
+  "name": "@keno/shared",
+  "version": "0.0.0",
+  "private": true,
+  "main": "types/index.ts",
+  "types": "types/index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'nothing to build'",
+    "lint": "echo 'no lint'",
+    "clean": "echo 'no clean'"
+  }
+}
+

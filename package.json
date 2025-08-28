@@ -1,0 +1,19 @@
+{
+  "name": "@keno/workspace",
+  "private": true,
+  "workspaces": [
+    "keno-frontend",
+    "keno-backend",
+    "shared"
+  ],
+  "scripts": {
+    "build": "npm run -ws build",
+    "dev": "concurrently -n FRONTEND,BACKEND -c \"#4FC3F7,#81C784\" \"npm --workspace keno-frontend run dev\" \"npm --workspace keno-backend run dev\"",
+    "lint": "npm run -ws lint --if-present",
+    "clean": "npm run -ws clean --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

@@ -3,8 +3,9 @@ import { } from 'date-fns';
 import { ticketBodySchema, ticketQuerySchema } from '../schemas/ticket';
 import type { Server as SocketIOServer } from 'socket.io';
 import Ticket from '../models/ticket';
-import { verifyWalletToken } from '../middleware/wallet';
+import { authRequired } from '../middleware/auth';
 import Session from '../models/session';
+import User from '../models/user';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get('/tickets', async (_req, res) => {
   res.json(results);
 });
 
-router.post('/tickets', verifyWalletToken, async (req, res) => {
+router.post('/tickets', authRequired, async (req, res) => {
   const createdAt = new Date();
 
   const parseQuery = ticketQuerySchema.safeParse(req.query);
@@ -26,46 +27,21 @@ router.post('/tickets', verifyWalletToken, async (req, res) => {
   const session = await Session.findOne().lean<{ status?: string; current_round_id?: string; phase_ends_at?: Date }>();
   if (!session || session.status !== 'select' || !session.current_round_id) return res.status(400).json({ error: 'not in select phase' });
   if (!roundIdRaw || roundIdRaw !== session.current_round_id) return res.status(400).json({ error: 'invalid round' });
-  const walletUser: any = (req as any).user || {};
-  const userId = walletUser.chatId || walletUser.user_id || walletUser.id || walletUser.userId;
-  const username = walletUser.username || walletUser.email || walletUser.displayName || 'player';
-  const token = (req as any).token as string;
-  if (!userId || !token) return res.status(401).json({ error: 'unauthorized' });
+  const authUser: any = (req as any).user || {};
+  const userId: string | undefined = authUser.userId;
+  if (!userId) return res.status(401).json({ error: 'unauthorized' });
 
-  // wallet debit
-  const WALLET_URL = process.env.WALLET_URL || process.env.walletUrl || '';
-  const SHARED_SECRET_BINGO = process.env.SHARED_SECRET_BINGO || process.env.PASS_KEY || '';
-  if (WALLET_URL) {
-    try {
-      const debitBody = {
-        user_id: userId,
-        username,
-        transaction_type: 'debit',
-        transaction_id: `BET-${Date.now()}`,
-        amount: betAmount,
-        game: 'Keno',
-        round_id: roundIdRaw,
-        status: 'pending',
-      };
-      const resp = await fetch(`${WALLET_URL}/api/wallet/debit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'Pass-Key': SHARED_SECRET_BINGO,
-        },
-        body: JSON.stringify(debitBody),
-      });
-      if (!resp.ok) {
-        const err = await resp.text();
-        return res.status(400).json({ error: 'wallet debit failed', details: err });
-      }
-    } catch (e: any) {
-      return res.status(400).json({ error: 'wallet debit error', details: e?.message || String(e) });
-    }
-  }
+  // Debit from local wallet balance atomically
+  const updatedUser = await User.findOneAndUpdate(
+    { _id: userId, wallet_balance: { $gte: betAmount } },
+    { $inc: { wallet_balance: -betAmount } },
+    { new: true }
+  );
+  if (!updatedUser) return res.status(400).json({ error: 'insufficient balance' });
 
-  const ticket = { round_id: roundIdRaw, played_number, bet_amount: betAmount, user_id: String(userId), username, user_token: token, created_at: createdAt };
+  const username = updatedUser.display_name || updatedUser.email || 'player';
+
+  const ticket = { round_id: roundIdRaw, played_number, bet_amount: betAmount, user_id: String(userId), username, created_at: createdAt } as const;
 
   const result = await Ticket.create(ticket);
   try {
