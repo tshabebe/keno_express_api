@@ -5,14 +5,14 @@ import RegisterPage from './features/auth/RegisterPage'
 import Layout from './components/Layout'
 import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
-import ResultsPanel from './features/keno/ResultsPanel'
-import HistoryPanel from './features/keno/HistoryPanel'
+import CalledBalls from './features/keno/CalledBalls'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
 import { createTicket, getCurrentRound } from './lib/api'
 import { getSocket, joinGlobalKeno, joinRoundRoom } from './lib/socket'
 import { useToast } from './context/ToastContext'
 import { useAuth } from './context/AuthContext'
 import { getMe } from './lib/auth'
+import { playRoundStart, playCall, playHit } from './lib/sound'
 
 const MAX_PICKS = 10
 
@@ -23,11 +23,13 @@ export default function App() {
   const [betAmount, setBetAmount] = useState<number>(1)
   const [, setLocalBalance] = useState<number>(1000)
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([])
-  const [isDrawing] = useState<boolean>(false)
-  const [history, setHistory] = useState<any[]>([])
+  // kept for potential UI state, currently unused
   const [currentRoundId, setCurrentRoundId] = useState<string>('')
   const [lastBet, setLastBet] = useState<{ picks: number[]; amount: number } | null>(null)
   const [phaseStatus, setPhaseStatus] = useState<'idle' | 'select' | 'draw'>('idle')
+  const revealTimersRef = useState<number[]>([])[0] as unknown as { push: (id: number) => void; length: number } & number[]
+  const timersRef = (revealTimersRef as unknown as { current?: number[] })
+  if (!Array.isArray((timersRef as any).current)) (timersRef as any).current = []
 
   const onToggleNumber = (value: number) => {
     setSelectedNumbers((prev) =>
@@ -88,7 +90,21 @@ export default function App() {
 
     const onDrawCompleted = async (payload: { drawn: { drawn_number: number[] }; winnings: Array<{ played_number: number[] }> }) => {
       const drawn = payload?.drawn?.drawn_number || []
-      setDrawnNumbers(drawn)
+      // Clear any previous reveal timers and start fresh
+      try {
+        const ids = (timersRef as any).current as number[]
+        ids.forEach((id: number) => window.clearTimeout(id))
+        ;(timersRef as any).current = []
+      } catch {}
+      setDrawnNumbers([])
+      const intervalMs = 500; // slower reveal for a more relaxed feel
+      drawn.forEach((num, idx) => {
+        const tid = window.setTimeout(() => {
+          setDrawnNumbers((prev) => (prev.includes(num) ? prev : [...prev, num]))
+          if (selectedNumbers.includes(num)) playHit(); else playCall()
+        }, idx * intervalMs)
+        ;(timersRef as any).current.push(tid)
+      })
       if (lastBet) {
         const hits = lastBet.picks.filter((n) => drawn.includes(n)).length
         const payout = hits >= 5 ? lastBet.amount * hits : 0
@@ -105,17 +121,6 @@ export default function App() {
           setLocalBalance((b) => b - lastBet.amount + payout)
           setBalance((ctxBalance || 0) - lastBet.amount + payout)
         }
-        setHistory((h) => [
-          {
-            id: crypto.randomUUID(),
-            drawn,
-            picks: lastBet.picks,
-            bet: lastBet.amount,
-            payout,
-            date: new Date().toISOString(),
-          },
-          ...h,
-        ])
         setLastBet(null)
       }
     }
@@ -126,6 +131,8 @@ export default function App() {
         if (p.roundId !== currentRoundId) {
           setCurrentRoundId(p.roundId)
           joinRoundRoom(p.roundId)
+          // New round announced
+          playRoundStart()
         }
       }
       setPhaseStatus(p.status)
@@ -142,11 +149,11 @@ export default function App() {
     <Layout>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <KenoBoard selectedNumbers={selectedNumbers} onToggleNumber={onToggleNumber} maxPicks={MAX_PICKS} />
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <ResultsPanel drawnNumbers={drawnNumbers} selectedNumbers={selectedNumbers} isDrawing={isDrawing} />
-            <HistoryPanel entries={history} />
+          {/* Mobile: called balls above grid */}
+          <div className="lg:hidden sticky top-0 z-20 -mt-1">
+            <CalledBalls numbers={[...drawnNumbers].slice(0, 20)} />
           </div>
+          <KenoBoard selectedNumbers={selectedNumbers} onToggleNumber={onToggleNumber} maxPicks={MAX_PICKS} drawnNumbers={drawnNumbers} />
         </div>
         <div className="lg:col-span-1">
           <BetControls
@@ -168,6 +175,10 @@ export default function App() {
           />
           <div className="mt-4">
             <LobbiesPanel />
+          </div>
+          {/* Desktop: called balls under bet controls */}
+          <div className="mt-4 hidden lg:block">
+            <CalledBalls numbers={[...drawnNumbers].slice(0, 20)} />
           </div>
         </div>
       </div>

@@ -40,11 +40,13 @@ export default function LoginPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 grid place-items-center px-4">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 grid place-items-center px-4 relative overflow-hidden">
+      <div aria-hidden className="glow-emerald -top-20 -right-24 h-56 w-56"></div>
+      <div aria-hidden className="glow-indigo -bottom-24 -left-24 h-56 w-56"></div>
       <div className="w-full max-w-md">
-        <div className="rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-xl p-8">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900/80 to-slate-900/50 shadow-xl backdrop-blur-xl p-8">
           <div className="text-center mb-8">
-            <div className="text-3xl font-bold text-white tracking-tight">Welcome back</div>
+            <div className="text-3xl font-bold tracking-tight bg-gradient-to-r from-emerald-300 to-indigo-300 bg-clip-text text-transparent">Welcome back</div>
             <div className="text-slate-300 text-sm mt-1">Sign in to continue</div>
           </div>
           <form onSubmit={onSubmit} className="space-y-4">
@@ -56,7 +58,7 @@ export default function LoginPage() {
                   inputMode="tel"
                   placeholder="e.g. +1234567890"
                   { ...register('phoneNumber') }
-                  className="w-full rounded-xl bg-slate-900/60 border border-white/10 px-4 py-3 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-white/10 bg-slate-800/60 px-4 py-3 text-slate-100 placeholder:text-slate-400 shadow-inner backdrop-blur-md transition-all duration-300 ease-out focus:outline-none focus:ring-4 focus:ring-emerald-400/30"
                 />
               </div>
               {errors.phoneNumber ? <div className="text-xs text-red-400 mt-1">{errors.phoneNumber.message}</div> : null}
@@ -68,7 +70,7 @@ export default function LoginPage() {
                   type="password"
                   placeholder="Your password"
                   { ...register('password') }
-                  className="w-full rounded-xl bg-slate-900/60 border border-white/10 px-4 py-3 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-white/10 bg-slate-800/60 px-4 py-3 text-slate-100 placeholder:text-slate-400 shadow-inner backdrop-blur-md transition-all duration-300 ease-out focus:outline-none focus:ring-4 focus:ring-emerald-400/30"
                 />
               </div>
               {errors.password ? <div className="text-xs text-red-400 mt-1">{errors.password.message}</div> : null}
@@ -77,7 +79,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-indigo-500 hover:bg-indigo-400 active:bg-indigo-600 text-white font-semibold px-4 py-3 transition disabled:opacity-60"
+              className="w-full rounded-xl border border-indigo-300/20 bg-gradient-to-b from-indigo-600 to-indigo-700 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-900/30 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:from-indigo-500 hover:to-indigo-600 hover:shadow-indigo-500/25 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 disabled:opacity-60"
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
@@ -86,7 +88,7 @@ export default function LoginPage() {
         <div className="text-center text-slate-400 text-xs mt-6 space-y-1">
           <div>By signing in, you agree to our Terms of Service and Privacy Policy.</div>
           <div>
-            New here? <Link to="/register" className="text-indigo-400 hover:text-indigo-300">Create an account</Link>
+            New here? <Link to="/register" className="text-indigo-300 hover:text-indigo-200">Create an account</Link>
           </div>
         </div>
       </div>

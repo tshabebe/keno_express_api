@@ -29,12 +29,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div aria-live="polite" className="fixed inset-x-0 top-2 z-50 flex flex-col items-center gap-2 px-2">
         {toasts.map((t) => {
-          const base = 'rounded-md px-3 py-2 text-sm shadow-md backdrop-blur-md border'
+          const base = 'rounded-xl px-3 py-2 text-sm shadow-lg backdrop-blur-md border transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-2'
           const tone = t.type === 'success'
-            ? 'bg-emerald-900/70 text-emerald-50 border-emerald-700'
+            ? 'bg-emerald-800/80 text-emerald-50 border-emerald-300/20 shadow-emerald-900/30'
             : t.type === 'error'
-              ? 'bg-rose-900/70 text-rose-50 border-rose-700'
-              : 'bg-slate-900/70 text-slate-100 border-slate-700'
+              ? 'bg-rose-800/80 text-rose-50 border-rose-300/20 shadow-rose-900/30'
+              : 'bg-slate-900/80 text-slate-100 border-white/10 shadow-black/20'
           return (
             <div key={t.id} className={`${base} ${tone}`}>{t.message}</div>
           )
