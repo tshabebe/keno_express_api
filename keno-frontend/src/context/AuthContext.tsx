@@ -9,6 +9,7 @@ type AuthContextType = {
   token: string | null
   balance: number
   setBalance: (value: number) => void
+  setAuth: (value: AuthResponse | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -56,6 +57,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     token,
     balance,
     setBalance,
+    setAuth: (data: AuthResponse | null) => {
+      if (!data) {
+        setUser(null)
+        setToken(null)
+        setBalance(0)
+        setAuthToken(null)
+        localStorage.removeItem('auth')
+      } else {
+        setUser(data.user)
+        setToken(data.token)
+        setBalance(data.user.balance ?? 0)
+        setAuthToken(data.token)
+        localStorage.setItem('auth', JSON.stringify(data))
+      }
+    }
   }), [user, token, balance])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -28,5 +28,5 @@
       "shared/types/*": ["../shared/types/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../shared/**/*.ts"]
 }

@@ -1,9 +1,10 @@
 import { apiFetch, setAuthToken } from './http'
 import { getApiBaseUrl } from './env'
+import type { AuthResponse } from 'shared/types/auth'
 
 const API_BASE = getApiBaseUrl()
 
-export type AuthResponse = { token: string; user: { id: string; email: string; displayName: string; balance?: number } }
+export type { AuthResponse }
 
 export async function register(params: { email: string; password: string; displayName?: string }): Promise<AuthResponse> {
   const res = await apiFetch(`${API_BASE}/auth/register`, { method: 'POST', body: JSON.stringify(params) })
