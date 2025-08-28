@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
 import type { AuthResponse } from '../lib/auth'
-import { getMe, restoreAuth } from '../lib/auth'
+import { restoreAuth } from '../lib/auth'
 import { setAuthToken } from '../lib/http'
 
 type AuthContextType = {
@@ -17,7 +16,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthResponse['user'] | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [balance, setBalance] = useState<number>(0)
-  const location = useLocation()
 
   useEffect(() => {
     const restored = restoreAuth()
@@ -29,27 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Accept token from URL (?token=...); set as active auth and fetch profile
-  useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    const tokenFromUrl = params.get('token')
-    if (tokenFromUrl && tokenFromUrl !== token) {
-      setToken(tokenFromUrl)
-      setAuthToken(tokenFromUrl)
-      ;(async () => {
-        try {
-          const me = await getMe()
-          if (me) {
-            setUser({ id: me.id as any, email: me.email, displayName: me.displayName } as any)
-            setBalance(me.balance ?? 0)
-            localStorage.setItem('auth', JSON.stringify({ token: tokenFromUrl, user: { id: me.id, email: me.email, displayName: me.displayName, balance: me.balance } }))
-          }
-        } catch {
-          // ignore
-        }
-      })()
-    }
-  }, [location.search])
+  // URL token handling removed; rely on local login/register only
 
   const value = useMemo<AuthContextType>(() => ({
     user,

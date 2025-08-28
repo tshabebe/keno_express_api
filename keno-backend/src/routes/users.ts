@@ -2,7 +2,6 @@ import { Router } from 'express';
 import User from '../models/user';
 import bcrypt from 'bcryptjs';
 import { authRequired, signToken } from '../middleware/auth';
-import { verifyWalletToken } from '../middleware/wallet';
 
 const router = Router();
 
@@ -28,13 +27,9 @@ router.post('/auth/login', async (req, res) => {
   res.json({ token, user: { id: user._id, email, displayName: user.display_name, balance: user.wallet_balance ?? 0 } });
 });
 
-// Profile via wallet verification (align with Next Spin). If WALLET_URL not set, falls back to JWT-only data
-router.get('/me', verifyWalletToken, async (req, res) => {
+// Profile via local JWT auth and database lookup
+router.get('/me', authRequired, async (req, res) => {
   const u: any = (req as any).user || {};
-  // If wallet provided rich data, forward it. Otherwise load from local db by decoded id if present
-  if (u && (u.email || u.balance !== undefined || u.chatId)) {
-    return res.json(u);
-  }
   const userId = (u.userId as string) || '';
   if (!userId) return res.status(400).json({ error: 'invalid token' });
   const dbUser = await User.findById(userId);
