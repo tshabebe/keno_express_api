@@ -3,10 +3,12 @@ type BetControlsProps = {
   maxPicks: number
   betAmount: number
   onBetAmountChange: (value: number) => void
-  onQuickPick: () => void
+  onQuickPick: (count?: number) => void
   onClear: () => void
   onPlaceBet: () => void
   isPlaceBetDisabled?: boolean
+  lastBet?: { picks: number[]; amount: number } | null
+  onRebet?: () => void
 }
 
 export default function BetControls({
@@ -18,6 +20,8 @@ export default function BetControls({
   onClear,
   onPlaceBet,
   isPlaceBetDisabled,
+  lastBet,
+  onRebet,
 }: BetControlsProps) {
   return (
     <aside className="rounded-lg bg-slate-900 p-3 sm:p-4">
@@ -55,14 +59,19 @@ export default function BetControls({
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             className="rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100"
-            onClick={onQuickPick}
+            onClick={() => onQuickPick()}
           >
             Quick Pick
           </button>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={() => onQuickPick(5)} className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-100">5</button>
+            <button type="button" onClick={() => onQuickPick(7)} className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-100">7</button>
+            <button type="button" onClick={() => onQuickPick(10)} className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-100">10</button>
+          </div>
           <button
             type="button"
             className="rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100"
@@ -78,6 +87,9 @@ export default function BetControls({
           >
             Place Bet
           </button>
+          {lastBet && onRebet && (
+            <button type="button" className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white" onClick={onRebet}>Rebet</button>
+          )}
         </div>
       </div>
     </aside>

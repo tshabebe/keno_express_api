@@ -10,6 +10,7 @@ import HistoryPanel from './features/keno/HistoryPanel'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
 import { createTicket, getCurrentRound } from './lib/api'
 import { getSocket, joinGlobalKeno, joinRoundRoom } from './lib/socket'
+import { useToast } from './context/ToastContext'
 import { useAuth } from './context/AuthContext'
 import { getMe } from './lib/auth'
 
@@ -17,6 +18,7 @@ const MAX_PICKS = 10
 
 export default function App() {
   const { user, balance: ctxBalance, setBalance } = useAuth()
+  const { show } = useToast()
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
   const [betAmount, setBetAmount] = useState<number>(1)
   const [, setLocalBalance] = useState<number>(1000)
@@ -37,8 +39,9 @@ export default function App() {
     )
   }
 
-  const onQuickPick = () => {
-    const needed = MAX_PICKS - selectedNumbers.length
+  const onQuickPick = (count?: number) => {
+    const need = typeof count === 'number' ? Math.max(0, Math.min(MAX_PICKS, count) - selectedNumbers.length) : (MAX_PICKS - selectedNumbers.length)
+    const needed = need
     if (needed <= 0) return
 
     const remaining = Array.from({ length: 80 }, (_, i) => i + 1).filter((n) => !selectedNumbers.includes(n))
@@ -63,6 +66,7 @@ export default function App() {
       await createTicket({ roundId, numbers: selectedNumbers.slice(0, 10), betAmount })
       setLastBet({ picks: selectedNumbers.slice().sort((a, b) => a - b), amount: betAmount })
       // No manual draw trigger; server will broadcast automatically
+      show('Bet placed for next draw', 'success')
     } finally {
       // keep state; ResultsPanel handles animation when draw event arrives
     }
@@ -154,6 +158,13 @@ export default function App() {
             onClear={onClear}
             onPlaceBet={onPlaceBet}
             isPlaceBetDisabled={isPlaceBetDisabled}
+            lastBet={lastBet}
+            onRebet={() => {
+              if (!lastBet || !currentRoundId) return
+              createTicket({ roundId: currentRoundId, numbers: lastBet.picks, betAmount: lastBet.amount })
+                .then(() => show('Rebet placed', 'success'))
+                .catch((e) => show(e?.message || 'Rebet failed', 'error'))
+            }}
           />
           <div className="mt-4">
             <LobbiesPanel />

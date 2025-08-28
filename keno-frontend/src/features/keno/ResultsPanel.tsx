@@ -33,7 +33,7 @@ export default function ResultsPanel({ drawnNumbers, selectedNumbers, isDrawing 
   }, [drawnNumbers.join(',')])
 
   return (
-    <section className="rounded-lg bg-slate-900 p-3 sm:p-4">
+    <section className="rounded-lg bg-slate-900 p-3 sm:p-4" aria-live="polite">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-slate-200">Results</h2>
         <span className="text-xs text-slate-400">{matches.length} match{matches.length === 1 ? '' : 'es'}</span>
