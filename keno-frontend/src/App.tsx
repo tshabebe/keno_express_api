@@ -42,6 +42,7 @@ export default function App() {
     const fireIn = endMs - nowMs - 10000 // 10 seconds before next draw
     const clearNow = fireIn <= 0
     const doClear = () => {
+      setHideDrawnMarks(true)
       setDrawnNumbers([])
       setSelectedNumbers([])
       if (currentRoundId) {
@@ -56,6 +57,8 @@ export default function App() {
   }
 
   const onToggleNumber = (value: number) => {
+    // Hide previous draw marks as soon as user starts selecting
+    setHideDrawnMarks(true)
     setSelectedNumbers((prev) =>
       prev.includes(value)
         ? prev.filter((n) => n !== value)
@@ -218,9 +221,9 @@ export default function App() {
       setPhaseStatus(p.status)
       // During select, schedule board clear at T-10s to allow players to review results
       if (p.status === 'select') {
+        // Show previous draw marks at start of select, then hide/clear at T-10
+        setHideDrawnMarks(false)
         scheduleBoardClearAtTMinus10(p.phaseEndsAt)
-        // During select phase we hide previous draw highlights
-        setHideDrawnMarks(true)
       }
       if (p.status === 'draw' && clearTimerRef.current) {
         try { window.clearTimeout(clearTimerRef.current) } catch {}
