@@ -3,13 +3,9 @@ import { authRequired } from '../middleware/auth';
 import { Transaction } from '../models/transaction';
 import User from '../models/user';
 import crypto from 'crypto';
+import { Chapa } from 'chapa-nodejs';
 
-// Lazy import to avoid top-level require if key is missing
-function getChapa() {
-  const { Chapa } = require('chapa-nodejs');
-  const key = process.env.CHAPA_AUTH_KEY as string;
-  return new Chapa({ secretKey: key });
-}
+
 
 const router = Router();
 
@@ -22,13 +18,17 @@ router.post('/payments/init', authRequired, async (req, res) => {
     const currency = String(req.body?.currency || 'ETB');
     if (!amount || amount <= 0) return res.status(400).json({ error: 'invalid amount' });
 
-    const chapa = getChapa();
+    const chapa = new Chapa({ secretKey: process.env.CHAPA_AUTH_KEY as string });
     const tx_ref = await chapa.genTxRef();
 
     await Transaction.create({ tx_ref, user_id: userId, amount, currency, type: 'deposit', status: 'pending' });
 
-    const url = await chapa.initialize({ amount: String(amount), currency, tx_ref, return_url: process.env.RETURN_URL || 'http://localhost:5173' });
-    return res.json({ checkout_url: url?.data, tx_ref });
+    const initRes = await chapa.initialize({ amount: String(amount), currency, tx_ref, return_url: process.env.RETURN_URL || 'http://localhost:5173' });
+    const checkout = (initRes && (initRes as any).data && (initRes as any).data.checkout_url)
+      || (initRes && (initRes as any).checkout_url)
+      || (initRes && (initRes as any).data)
+      || null;
+    return res.json({ checkout_url: checkout, tx_ref });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('init payment error', e);
@@ -49,7 +49,7 @@ router.post('/payments/webhook', async (req, res) => {
     const amount = Number(body?.amount || 0);
     if (!tx_ref) return res.status(400).json({ error: 'missing tx_ref' });
 
-    const chapa = getChapa();
+    const chapa = new Chapa({ secretKey: process.env.CHAPA_AUTH_KEY as string });
     const verify = await chapa.verify({ tx_ref });
     if (verify?.status !== 'success') return res.status(400).json({ error: 'verification failed' });
 
