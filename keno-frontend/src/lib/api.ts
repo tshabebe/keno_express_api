@@ -28,6 +28,13 @@ export async function getCurrentRound(): Promise<Round | null> {
   return parsed.data
 }
 
+export async function getSession(): Promise<{ status: 'idle' | 'select' | 'draw'; current_round_id?: string; phase_ends_at?: string } | null> {
+  const res = await apiFetch(`${API_BASE}/session`)
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error('Failed to load session')
+  return res.json()
+}
+
 export async function createTicket(params: { roundId: string; numbers: number[]; betAmount: number }): Promise<Ticket> {
   const qs = new URLSearchParams()
   qs.set('round_id', params.roundId)
@@ -56,6 +63,21 @@ export async function createTodayRound(): Promise<Round> {
   const res = await apiFetch(`${API_BASE}/rounds?starts_at=${encodeURIComponent(today)}`, { method: 'POST' })
   if (!res.ok) throw new Error('Failed to create round')
   return res.json()
+}
+
+export async function initDeposit(amount: number, currency: string = 'ETB'): Promise<{ checkout_url: string; tx_ref: string }> {
+  const res = await apiFetch(`${API_BASE}/payments/init`, { method: 'POST', body: JSON.stringify({ amount, currency }) })
+  if (!res.ok) throw new Error('Failed to init payment')
+  return res.json()
+}
+
+export async function getCurrentDrawnNumbers(roundId?: string): Promise<number[]> {
+  const url = roundId ? `${API_BASE}/drawnings?round_id=${encodeURIComponent(roundId)}` : `${API_BASE}/drawnings`
+  const res = await apiFetch(url)
+  if (res.status === 204) return []
+  if (!res.ok) throw new Error('Failed to fetch drawning')
+  const data = await res.json() as { drawn_number?: number[] }
+  return Array.isArray(data.drawn_number) ? data.drawn_number : []
 }
 
 function indexToParam(index: number): string {

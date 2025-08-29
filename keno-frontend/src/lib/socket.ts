@@ -26,3 +26,22 @@ export function joinRoundRoom(roundId: string) {
   s.emit('lobby:join', roundId)
 }
 
+export type DrawNumberEvent = { roundId: string; seq: number; number: number; ts: number; nonce: string; sig: string }
+export type DrawStartEvent = { roundId: string; ts: number; nonce: string; sig: string }
+
+export function onDrawStart(handler: (e: DrawStartEvent) => void) {
+  getSocket().on('draw:start', handler)
+}
+
+export function onDrawNumber(handler: (e: DrawNumberEvent) => void) {
+  getSocket().on('draw:number', handler)
+}
+
+export function offDrawStart(handler: (e: DrawStartEvent) => void) {
+  getSocket().off('draw:start', handler)
+}
+
+export function offDrawNumber(handler: (e: DrawNumberEvent) => void) {
+  getSocket().off('draw:number', handler)
+}
+

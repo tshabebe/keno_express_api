@@ -13,6 +13,26 @@ import Session from '../models/session';
 
 const router = Router();
 
+// Fetch drawn numbers for a round (or current session round if none specified)
+router.get('/drawnings', async (req, res) => {
+  try {
+    const roundIdRaw = String((req.query as Record<string, unknown>).round_id || '');
+    let roundId = roundIdRaw;
+    if (!roundId) {
+      const s = await Session.findOne().lean<{ current_round_id?: string }>();
+      if (!s?.current_round_id) return res.status(404).json({ error: 'no active round' });
+      roundId = s.current_round_id;
+    }
+    const drawn = await Drawning.findOne({ round_id: roundId }).lean<{ round_id: string; drawn_number: number[]; created_at: Date }>();
+    if (!drawn) return res.status(204).json({});
+    return res.json({ round_id: roundId, drawn_number: drawn.drawn_number, created_at: drawn.created_at });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('get drawning error', e);
+    return res.status(500).json({ error: 'failed to fetch drawning' });
+  }
+});
+
 router.post('/drawnings', authRequired, async (req, res) => {
   const roundIdRaw = String((req.query as Record<string, unknown>).round_id || '');
 

@@ -6,5 +6,6 @@ export function load(): number[] {
     drawning.push(_.random(1, 80));
     drawning = _.uniq(drawning);
   }
-  return drawning.sort((a, b) => a - b);
+  // Return in the random order of draw; do not sort
+  return drawning;
 }

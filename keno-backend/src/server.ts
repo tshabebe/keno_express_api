@@ -9,12 +9,14 @@ import ticketsRouter from './routes/tickets';
 import drawningsRouter from './routes/drawnings';
 import usersRouter from './routes/users';
 import matchmakingRouter from './routes/matchmaking';
+import paymentsRouter from './routes/payments';
 import http from 'http';
+import crypto from 'crypto';
 import { Server as SocketIOServer } from 'socket.io';
 import { connectDb } from './lib/db';
-import Session from './models/session';
 import Round from './models/round';
 import Drawning from './models/drawning';
+import Session from './models/session';
 import { } from 'date-fns';
 import { addSeconds, now, isSameOrAfter } from './lib/date';
 import { load as loadDrawning } from './lib/drawning_gateway';
@@ -26,6 +28,8 @@ app.locals.io = io;
 
 app.use(cors());
 app.use(morgan('dev'));
+// Raw body for webhook signature verification
+app.use('/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -41,6 +45,7 @@ app.use('/', ticketsRouter);
 app.use('/', drawningsRouter);
 app.use('/', usersRouter);
 app.use('/', matchmakingRouter);
+app.use('/', paymentsRouter);
 
 app.get('/', (_req, res) => {
   res.json({ name: 'Keno API', status: 'ok' });
@@ -71,7 +76,7 @@ io.on('connection', (socket) => {
 });
 
 // Global session scheduler
-const SELECT_PHASE_SEC = parseInt(process.env.SELECT_PHASE_SEC || '10', 10);
+const SELECT_PHASE_SEC = parseInt(process.env.SELECT_PHASE_SEC || '60', 10);
 const DRAW_PHASE_SEC = parseInt(process.env.DRAW_PHASE_SEC || '10', 10);
 
 async function ensureSession() {
@@ -100,8 +105,36 @@ async function runDraw(roundIdRaw: string) {
     const created = await Drawning.create(doc);
     drawn = created.toObject();
   }
-  const payload = { current_timestamp: now(), drawn, winnings: [] as any[] };
-  io.to(`lobby:${roundIdRaw}`).emit('draw:completed', payload);
+  const secret = process.env.DRAW_EVENT_SECRET || 'change_me_in_prod';
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const sign = (msg: string) => crypto.createHmac('sha256', secret).update(msg).digest('hex');
+
+  // Announce draw start
+  {
+    const ts = Date.now();
+    const sig = sign(`${roundIdRaw}.${ts}.${nonce}`);
+    io.to(`lobby:${roundIdRaw}`).emit('draw:start', { roundId: roundIdRaw, ts, nonce, sig });
+    // reset progress
+    await Session.updateOne({}, { $set: { draw_progress_seq: -1, updated_at: new Date() } }).lean();
+  }
+
+  // Stream numbers one by one
+  const intervalMs = parseInt(process.env.DRAW_INTERVAL_MS || '600', 10);
+  drawn.drawn_number.forEach((num, idx) => {
+    setTimeout(() => {
+      const ts = Date.now();
+      const seq = idx;
+      const sig = sign(`${roundIdRaw}.${seq}.${num}.${ts}.${nonce}`);
+      io.to(`lobby:${roundIdRaw}`).emit('draw:number', { roundId: roundIdRaw, seq, number: num, ts, nonce, sig });
+      // update progress
+      Session.updateOne({}, { $set: { draw_progress_seq: seq, updated_at: new Date() } }).lean().catch(() => {});
+      // After last number, emit completed summary for late joiners
+      if (idx === drawn!.drawn_number.length - 1) {
+        const payload = { current_timestamp: now(), drawn, winnings: [] as any[], ts, nonce, sig: sign(`${roundIdRaw}.completed.${ts}.${nonce}`) };
+        io.to(`lobby:${roundIdRaw}`).emit('draw:completed', payload);
+      }
+    }, idx * intervalMs);
+  });
 }
 
 setInterval(async () => {
@@ -142,6 +175,7 @@ setInterval(async () => {
         s.current_round_id = roundId;
         s.phase_ends_at = addSeconds(tnow, SELECT_PHASE_SEC);
         s.updated_at = new Date();
+        s.draw_progress_seq = -1;
         await s.save();
         io.to('lobby:global').emit('phase:update', { status: s.status, phaseEndsAt: s.phase_ends_at, roundId });
       }
