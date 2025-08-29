@@ -3,11 +3,13 @@ type KenoBoardProps = {
   onToggleNumber: (value: number) => void
   maxPicks: number
   drawnNumbers: number[]
+  disabled?: boolean
+  hideDrawn?: boolean
 }
 
 const TOTAL_NUMBERS = 80
 
-export default function KenoBoard({ selectedNumbers, onToggleNumber, maxPicks, drawnNumbers }: KenoBoardProps) {
+export default function KenoBoard({ selectedNumbers, onToggleNumber, maxPicks, drawnNumbers, disabled = false, hideDrawn = false }: KenoBoardProps) {
   const numbers = Array.from({ length: TOTAL_NUMBERS }, (_, idx) => idx + 1)
 
   const isAtPickLimit = selectedNumbers.length >= maxPicks
@@ -23,16 +25,16 @@ export default function KenoBoard({ selectedNumbers, onToggleNumber, maxPicks, d
       <div className="mt-3 grid grid-cols-10 gap-1.5 sm:gap-2">
         {numbers.map((num) => {
           const isSelected = selectedNumbers.includes(num)
-          const isDrawn = drawnNumbers.includes(num)
+          const isDrawn = !hideDrawn && drawnNumbers.includes(num)
           const isMatch = isDrawn && isSelected
-          const isDisabled = isAtPickLimit && !isSelected
+          const isDisabled = disabled || (isAtPickLimit && !isSelected)
           const base = 'grid place-items-center rounded-lg text-sm font-semibold h-8 w-8 sm:h-10 sm:w-10 border transition-all duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-emerald-400/40'
           const match = 'border-amber-300/30 bg-gradient-to-b from-amber-400 to-amber-500 text-amber-950 shadow-md shadow-amber-900/30 ring-amber-300/40'
           const drawn = 'border-amber-300/20 bg-amber-900/40 text-amber-200'
           const selected = 'border-emerald-300/20 bg-gradient-to-b from-emerald-600 to-emerald-700 text-emerald-50 shadow-md shadow-emerald-900/30 hover:-translate-y-0.5'
           const idle = 'border-white/10 bg-slate-800/80 text-slate-100 hover:-translate-y-0.5'
-          const disabled = 'border-white/5 bg-slate-800/60 text-slate-500 cursor-not-allowed'
-          const className = `${base} ${isMatch ? match : isDrawn ? drawn : isSelected ? selected : isDisabled ? disabled : idle}`
+          const disabledStyle = 'border-white/5 bg-slate-800/60 text-slate-500 cursor-not-allowed'
+          const className = `${base} ${isMatch ? match : isDrawn ? drawn : isSelected ? selected : isDisabled ? disabledStyle : idle}`
 
           return (
             <button

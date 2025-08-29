@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { initDeposit, getCurrentDrawnNumbers } from '../lib/api'
-import { getSocket, onDrawNumber, offDrawNumber, type DrawNumberEvent } from '../lib/socket'
+import { getSocket, onDrawNumber, offDrawNumber, onPhaseTick, offPhaseTick, type DrawNumberEvent, type PhaseTickEvent } from '../lib/socket'
 
 export default function Header() {
   const { user, balance } = useAuth()
@@ -42,6 +42,15 @@ export default function Header() {
       }
     }
     s.on('phase:update', onPhase)
+    const onTick = (t: PhaseTickEvent) => {
+      if (t?.status) setPhase(t.status as 'select' | 'draw')
+      if (t?.status === 'select' && t.phaseEndsAt) {
+        const target = new Date(t.phaseEndsAt).getTime()
+        setRemainingMs(Math.max(0, target - (t.now ? new Date(t.now as any).getTime() : Date.now())))
+      }
+      if (t?.status === 'draw') setRemainingMs(0)
+    }
+    onPhaseTick(onTick)
 
     // latest called number
     const handleNumber = (e: DrawNumberEvent) => {
@@ -51,6 +60,7 @@ export default function Header() {
 
     return () => {
       s.off('phase:update', onPhase)
+      offPhaseTick(onTick)
       offDrawNumber(handleNumber)
       if (timerRef.current) window.clearInterval(timerRef.current)
     }

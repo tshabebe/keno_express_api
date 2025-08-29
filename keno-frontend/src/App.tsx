@@ -7,7 +7,7 @@ import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
 import CalledBalls from './features/keno/CalledBalls'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
-import { createTicket, getCurrentRound, getCurrentDrawnNumbers } from './lib/api'
+import { createTicket, getCurrentRound, getCurrentDrawnNumbers, getSession } from './lib/api'
 import { getSocket, joinGlobalKeno, joinRoundRoom, onDrawStart, onDrawNumber, offDrawStart, offDrawNumber, type DrawNumberEvent, type DrawStartEvent } from './lib/socket'
 import { useToast } from './context/ToastContext'
 import { useAuth } from './context/AuthContext'
@@ -29,6 +29,31 @@ export default function App() {
   const [phaseStatus, setPhaseStatus] = useState<'idle' | 'select' | 'draw'>('idle')
   const selectedRef = useRef<number[]>([])
   useEffect(() => { selectedRef.current = selectedNumbers }, [selectedNumbers])
+  const clearTimerRef = useRef<number | null>(null)
+  const [hideDrawnMarks, setHideDrawnMarks] = useState<boolean>(false)
+
+  const scheduleBoardClearAtTMinus10 = (phaseEndsAt?: string | Date) => {
+    try {
+      if (clearTimerRef.current) window.clearTimeout(clearTimerRef.current)
+    } catch {}
+    if (!phaseEndsAt) return
+    const endMs = new Date(phaseEndsAt).getTime()
+    const nowMs = Date.now()
+    const fireIn = endMs - nowMs - 10000 // 10 seconds before next draw
+    const clearNow = fireIn <= 0
+    const doClear = () => {
+      setDrawnNumbers([])
+      setSelectedNumbers([])
+      if (currentRoundId) {
+        try { localStorage.setItem(`keno:selected:${currentRoundId}`, JSON.stringify([])) } catch {}
+      }
+    }
+    if (clearNow) {
+      doClear()
+    } else {
+      clearTimerRef.current = window.setTimeout(doClear, fireIn)
+    }
+  }
 
   const onToggleNumber = (value: number) => {
     setSelectedNumbers((prev) =>
@@ -79,6 +104,8 @@ export default function App() {
     }
 
     lastQuickKeyRef.current = key
+    // Hide previous draw highlights when quick-selecting to avoid confusion
+    setHideDrawnMarks(true)
   }
 
   const onClear = () => setSelectedNumbers([])
@@ -102,21 +129,23 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const cur = await getCurrentRound()
-        if (cur) {
-          setCurrentRoundId(cur._id)
-          // hydrate already-drawn numbers for persistence across reloads
-          const already = await getCurrentDrawnNumbers(cur._id)
+        const sess = await getSession()
+        if (sess?.roundId) setCurrentRoundId(sess.roundId)
+        if (sess?.status) setPhaseStatus(sess.status)
+        if (sess?.roundId) {
+          const already = await getCurrentDrawnNumbers(sess.roundId)
           if (already && already.length > 0) setDrawnNumbers(already)
-          // restore selected numbers scoped to round id
           try {
-            const key = `keno:selected:${cur._id}`
+            const key = `keno:selected:${sess.roundId}`
             const saved = localStorage.getItem(key)
             if (saved) {
               const parsed = JSON.parse(saved) as number[]
               if (Array.isArray(parsed)) setSelectedNumbers(parsed.slice(0, MAX_PICKS))
             }
           } catch {}
+        } else {
+          const cur = await getCurrentRound()
+          if (cur) setCurrentRoundId(cur._id)
         }
       } catch {}
     })()
@@ -165,6 +194,8 @@ export default function App() {
       // optional: verify sig/nonce server trust; client can also track to prevent replay in session
       seen.clear()
       setDrawnNumbers([])
+      // Show draw marks during draw
+      setHideDrawnMarks(false)
     }
     const handleNumber = (e: DrawNumberEvent) => {
       if (seen.has(e.number)) return
@@ -181,12 +212,20 @@ export default function App() {
           joinRoundRoom(p.roundId)
           // New round announced
           playRoundStart()
-          // clear selections for new round and reset storage scope
-          setSelectedNumbers([])
-          try { localStorage.setItem(`keno:selected:${p.roundId}`, JSON.stringify([])) } catch {}
+          // do not clear immediately; we will clear at T-10s in the upcoming select phase
         }
       }
       setPhaseStatus(p.status)
+      // During select, schedule board clear at T-10s to allow players to review results
+      if (p.status === 'select') {
+        scheduleBoardClearAtTMinus10(p.phaseEndsAt)
+        // During select phase we hide previous draw highlights
+        setHideDrawnMarks(true)
+      }
+      if (p.status === 'draw' && clearTimerRef.current) {
+        try { window.clearTimeout(clearTimerRef.current) } catch {}
+        clearTimerRef.current = null
+      }
     }
     s.on('phase:update', onPhase)
 
@@ -206,7 +245,7 @@ export default function App() {
           <div className="lg:hidden">
             <CalledBalls numbers={[...drawnNumbers].slice(0, 20)} />
           </div>
-          <KenoBoard selectedNumbers={selectedNumbers} onToggleNumber={onToggleNumber} maxPicks={MAX_PICKS} drawnNumbers={drawnNumbers} />
+          <KenoBoard selectedNumbers={selectedNumbers} onToggleNumber={onToggleNumber} maxPicks={MAX_PICKS} drawnNumbers={drawnNumbers} disabled={phaseStatus !== 'select'} hideDrawn={hideDrawnMarks} />
         </div>
         <div className="lg:col-span-1">
           <BetControls
@@ -225,6 +264,7 @@ export default function App() {
                 .then(() => show('Rebet placed', 'success'))
                 .catch((e) => show(e?.message || 'Rebet failed', 'error'))
             }}
+            disabled={phaseStatus !== 'select'}
           />
           <div className="mt-4">
             <LobbiesPanel />

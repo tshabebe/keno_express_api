@@ -73,6 +73,13 @@ export async function getCurrentDrawnNumbers(roundId?: string): Promise<number[]
   return Array.isArray(data.drawn_number) ? data.drawn_number : []
 }
 
+export async function getSession(): Promise<{ status: 'idle' | 'select' | 'draw'; roundId?: string; phaseEndsAt?: string | Date; boardClearedAt?: string | Date; now: string | Date } | null> {
+  const res = await apiFetch(`${API_BASE}/session`)
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error('Failed to fetch session')
+  return res.json()
+}
+
 function indexToParam(index: number): string {
   const map = [
     'number_one',

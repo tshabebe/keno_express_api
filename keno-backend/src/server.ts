@@ -10,6 +10,7 @@ import drawningsRouter from './routes/drawnings';
 import usersRouter from './routes/users';
 import matchmakingRouter from './routes/matchmaking';
 import paymentsRouter from './routes/payments';
+import sessionRouter from './routes/session';
 import http from 'http';
 import crypto from 'crypto';
 import { Server as SocketIOServer } from 'socket.io';
@@ -46,6 +47,7 @@ app.use('/', drawningsRouter);
 app.use('/', usersRouter);
 app.use('/', matchmakingRouter);
 app.use('/', paymentsRouter);
+app.use('/', sessionRouter);
 
 app.get('/', (_req, res) => {
   res.json({ name: 'Keno API', status: 'ok' });
@@ -182,6 +184,24 @@ setInterval(async () => {
         io.to('lobby:global').emit('phase:update', { status: s.status, phaseEndsAt: s.phase_ends_at, roundId });
       }
     }
+
+    // Emit periodic phase tick so clients can render server time consistently
+    try {
+      io.to('lobby:global').emit('phase:tick', {
+        status: s.status,
+        phaseEndsAt: s.phase_ends_at,
+        roundId: s.current_round_id,
+        now: tnow,
+      });
+      if (s.current_round_id) {
+        io.to(`lobby:${s.current_round_id}`).emit('phase:tick', {
+          status: s.status,
+          phaseEndsAt: s.phase_ends_at,
+          roundId: s.current_round_id,
+          now: tnow,
+        });
+      }
+    } catch {}
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('scheduler error', err);

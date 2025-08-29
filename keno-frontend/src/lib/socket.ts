@@ -45,3 +45,11 @@ export function offDrawNumber(handler: (e: DrawNumberEvent) => void) {
   getSocket().off('draw:number', handler)
 }
 
+export type PhaseTickEvent = { status: 'select' | 'draw' | 'idle'; phaseEndsAt?: string | Date; roundId?: string; now?: string | Date }
+export function onPhaseTick(handler: (e: PhaseTickEvent) => void) {
+  getSocket().on('phase:tick', handler)
+}
+export function offPhaseTick(handler: (e: PhaseTickEvent) => void) {
+  getSocket().off('phase:tick', handler)
+}
+
