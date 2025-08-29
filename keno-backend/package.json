@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc -p .",
-    "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts"
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
+    "prepare": "bun run build"
   },
   "keywords": [],
   "author": "",
