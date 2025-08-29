@@ -172,22 +172,15 @@ export default function App() {
       // Reconcile full set for late joiners/reloads; do not re-sequence client-side
       setDrawnNumbers(Array.isArray(drawn) ? drawn : [])
       if (lastBet) {
-        const hits = lastBet.picks.filter((n) => drawn.includes(n)).length
-        const payout = hits >= 5 ? lastBet.amount * hits : 0
         try {
           const me = await getMe()
           if (me) {
             setLocalBalance(me.balance)
             setBalance(me.balance)
-          } else {
-            setLocalBalance((b) => b - lastBet.amount + payout)
-            setBalance((ctxBalance || 0) - lastBet.amount + payout)
           }
-        } catch {
-          setLocalBalance((b) => b - lastBet.amount + payout)
-          setBalance((ctxBalance || 0) - lastBet.amount + payout)
+        } finally {
+          setLastBet(null)
         }
-        setLastBet(null)
       }
     }
 

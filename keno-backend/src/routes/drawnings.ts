@@ -9,6 +9,7 @@ import Drawning from '../models/drawning';
 import Ticket from '../models/ticket';
 import { authRequired } from '../middleware/auth';
 import User from '../models/user';
+import { getPayoutMultiplier } from '../lib/paytable';
 import Session from '../models/session';
 
 const router = Router();
@@ -68,14 +69,18 @@ router.post('/drawnings', authRequired, async (req, res) => {
     .lean();
   const winnings = tickets.filter((ticket: { played_number: number[] }) => {
     const match = _.intersection(drawn!.drawn_number, ticket.played_number);
-    return match.length >= 5;
+    const picks = Math.min(10, ticket.played_number.length || 0);
+    const mult = getPayoutMultiplier(picks, match.length);
+    return mult > 0;
   });
 
   // credit winners to local wallet balances
   await Promise.all(
     winnings.map(async (t: any) => {
       const hits = _.intersection(drawn!.drawn_number, t.played_number).length;
-      const payout = (t.bet_amount || 0) * hits;
+      const picks = Math.min(10, t.played_number.length || 0);
+      const mult = getPayoutMultiplier(picks, hits);
+      const payout = mult * (t.bet_amount || 0);
       if (payout > 0 && t.user_id) {
         try {
           await User.updateOne({ _id: t.user_id }, { $inc: { wallet_balance: payout } });
