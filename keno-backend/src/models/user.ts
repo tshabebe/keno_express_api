@@ -8,8 +8,7 @@ const UserSchema = new Schema({
   created_at: { type: Date, default: () => new Date() }
 });
 
-// Unique index for phone numbers
-UserSchema.index({ phone_number: 1 }, { unique: true });
+// Index created via field definition; removed duplicate schema.index to avoid warnings
 
 export type User = InferSchemaType<typeof UserSchema>;
 export type UserDoc = HydratedDocument<User>;

@@ -14,9 +14,9 @@ import http from 'http';
 import crypto from 'crypto';
 import { Server as SocketIOServer } from 'socket.io';
 import { connectDb } from './lib/db';
+import Session from './models/session';
 import Round from './models/round';
 import Drawning from './models/drawning';
-import Session from './models/session';
 import { } from 'date-fns';
 import { addSeconds, now, isSameOrAfter } from './lib/date';
 import { load as loadDrawning } from './lib/drawning_gateway';
@@ -77,7 +77,8 @@ io.on('connection', (socket) => {
 
 // Global session scheduler
 const SELECT_PHASE_SEC = parseInt(process.env.SELECT_PHASE_SEC || '60', 10);
-const DRAW_PHASE_SEC = parseInt(process.env.DRAW_PHASE_SEC || '10', 10);
+const DRAW_INTERVAL_MS = parseInt(process.env.DRAW_INTERVAL_MS || '600', 10);
+const NUMBERS_PER_DRAW = 20;
 
 async function ensureSession() {
   let s = await Session.findOne();
@@ -114,20 +115,16 @@ async function runDraw(roundIdRaw: string) {
     const ts = Date.now();
     const sig = sign(`${roundIdRaw}.${ts}.${nonce}`);
     io.to(`lobby:${roundIdRaw}`).emit('draw:start', { roundId: roundIdRaw, ts, nonce, sig });
-    // reset progress
-    await Session.updateOne({}, { $set: { draw_progress_seq: -1, updated_at: new Date() } }).lean();
   }
 
   // Stream numbers one by one
-  const intervalMs = parseInt(process.env.DRAW_INTERVAL_MS || '600', 10);
+  const intervalMs = DRAW_INTERVAL_MS;
   drawn.drawn_number.forEach((num, idx) => {
     setTimeout(() => {
       const ts = Date.now();
       const seq = idx;
       const sig = sign(`${roundIdRaw}.${seq}.${num}.${ts}.${nonce}`);
       io.to(`lobby:${roundIdRaw}`).emit('draw:number', { roundId: roundIdRaw, seq, number: num, ts, nonce, sig });
-      // update progress
-      Session.updateOne({}, { $set: { draw_progress_seq: seq, updated_at: new Date() } }).lean().catch(() => {});
       // After last number, emit completed summary for late joiners
       if (idx === drawn!.drawn_number.length - 1) {
         const payload = { current_timestamp: now(), drawn, winnings: [] as any[], ts, nonce, sig: sign(`${roundIdRaw}.completed.${ts}.${nonce}`) };
@@ -152,6 +149,7 @@ setInterval(async () => {
         s.status = 'select';
         s.current_round_id = roundId;
         s.phase_ends_at = addSeconds(tnow, SELECT_PHASE_SEC);
+        s.board_cleared_at = undefined;
         s.updated_at = new Date();
         await s.save();
         io.to('lobby:global').emit('phase:update', { status: s.status, phaseEndsAt: s.phase_ends_at, roundId });
@@ -161,12 +159,16 @@ setInterval(async () => {
 
     if (s.phase_ends_at && isSameOrAfter(tnow, new Date(s.phase_ends_at))) {
       if (s.status === 'select') {
-        // move to draw
+        // move to draw exactly when countdown hits 0
         s.status = 'draw';
-        s.phase_ends_at = addSeconds(tnow, DRAW_PHASE_SEC);
+        // record board cleared time for clients to know when to reset their UI
+        s.board_cleared_at = now();
+        // draw takes NUMBERS_PER_DRAW * intervalMs; no select countdown during draw
+        const drawMs = NUMBERS_PER_DRAW * DRAW_INTERVAL_MS;
+        s.phase_ends_at = new Date(tnow.getTime() + drawMs);
         s.updated_at = new Date();
         await s.save();
-        io.to('lobby:global').emit('phase:update', { status: s.status, phaseEndsAt: s.phase_ends_at, roundId: s.current_round_id });
+        io.to('lobby:global').emit('phase:update', { status: s.status, phaseEndsAt: s.phase_ends_at, roundId: s.current_round_id, boardClearedAt: s.board_cleared_at });
         await runDraw(s.current_round_id || '');
       } else if (s.status === 'draw') {
         // start next select phase
@@ -174,8 +176,8 @@ setInterval(async () => {
         s.status = 'select';
         s.current_round_id = roundId;
         s.phase_ends_at = addSeconds(tnow, SELECT_PHASE_SEC);
+        s.board_cleared_at = undefined;
         s.updated_at = new Date();
-        s.draw_progress_seq = -1;
         await s.save();
         io.to('lobby:global').emit('phase:update', { status: s.status, phaseEndsAt: s.phase_ends_at, roundId });
       }

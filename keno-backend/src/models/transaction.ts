@@ -12,8 +12,6 @@ const TransactionSchema = new Schema({
   updated_at: { type: Date, default: () => new Date() },
 });
 
-TransactionSchema.index({ tx_ref: 1 }, { unique: true });
-
 export type Transaction = InferSchemaType<typeof TransactionSchema>;
 export type TransactionDoc = HydratedDocument<Transaction>;
 export type TransactionModel = Model<Transaction>;

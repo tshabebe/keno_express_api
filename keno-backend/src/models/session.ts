@@ -4,7 +4,7 @@ const SessionSchema = new Schema({
   status: { type: String, enum: ['idle', 'select', 'draw'], required: true, default: 'idle' },
   current_round_id: { type: String, required: false },
   phase_ends_at: { type: Date, required: false },
-  draw_progress_seq: { type: Number, required: false, default: -1 },
+  board_cleared_at: { type: Date, required: false },
   updated_at: { type: Date, default: () => new Date() },
 });
 

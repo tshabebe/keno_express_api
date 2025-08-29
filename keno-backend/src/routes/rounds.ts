@@ -3,7 +3,6 @@ import { addDays } from 'date-fns';
 import { parseDate } from '../lib/helper';
 import { z } from 'zod';
 import Round from '../models/round';
-import Session from '../models/session';
 
 const router = Router();
 
@@ -35,12 +34,6 @@ router.get('/rounds/current', async (_req, res) => {
     .lean();
   if (!round) return res.status(404).json({ error: 'no active round' });
   res.json(round);
-});
-
-router.get('/session', async (_req, res) => {
-  const s = await Session.findOne().lean<{ status?: string; current_round_id?: string; phase_ends_at?: Date }>();
-  if (!s) return res.status(404).json({ error: 'no session' });
-  res.json({ status: s.status, current_round_id: s.current_round_id, phase_ends_at: s.phase_ends_at });
 });
 
 router.delete('/rounds/:id', async (_req, res) => {

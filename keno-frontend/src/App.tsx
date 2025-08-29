@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './features/auth/LoginPage'
 import RegisterPage from './features/auth/RegisterPage'
@@ -7,7 +7,7 @@ import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
 import CalledBalls from './features/keno/CalledBalls'
 import LobbiesPanel from './features/lobbies/LobbiesPanel'
-import { createTicket, getCurrentRound, getCurrentDrawnNumbers, getSession } from './lib/api'
+import { createTicket, getCurrentRound, getCurrentDrawnNumbers } from './lib/api'
 import { getSocket, joinGlobalKeno, joinRoundRoom, onDrawStart, onDrawNumber, offDrawStart, offDrawNumber, type DrawNumberEvent, type DrawStartEvent } from './lib/socket'
 import { useToast } from './context/ToastContext'
 import { useAuth } from './context/AuthContext'
@@ -27,13 +27,8 @@ export default function App() {
   const [currentRoundId, setCurrentRoundId] = useState<string>('')
   const [lastBet, setLastBet] = useState<{ picks: number[]; amount: number } | null>(null)
   const [phaseStatus, setPhaseStatus] = useState<'idle' | 'select' | 'draw'>('idle')
-  const [phaseEndsAt, setPhaseEndsAt] = useState<number | null>(null)
-  const [nowTs, setNowTs] = useState<number>(Date.now())
-  const [streamNonce, setStreamNonce] = useState<string | null>(null)
-  const [lastSeq, setLastSeq] = useState<number>(-1)
-  const revealTimersRef = useState<number[]>([])[0] as unknown as { push: (id: number) => void; length: number } & number[]
-  const timersRef = (revealTimersRef as unknown as { current?: number[] })
-  if (!Array.isArray((timersRef as any).current)) (timersRef as any).current = []
+  const selectedRef = useRef<number[]>([])
+  useEffect(() => { selectedRef.current = selectedNumbers }, [selectedNumbers])
 
   const onToggleNumber = (value: number) => {
     setSelectedNumbers((prev) =>
@@ -45,26 +40,48 @@ export default function App() {
     )
   }
 
+  const lastQuickKeyRef = useRef<string | null>(null)
   const onQuickPick = (count?: number) => {
-    const need = typeof count === 'number' ? Math.max(0, Math.min(MAX_PICKS, count) - selectedNumbers.length) : (MAX_PICKS - selectedNumbers.length)
-    const needed = need
-    if (needed <= 0) return
+    const target = typeof count === 'number' ? Math.min(MAX_PICKS, Math.max(0, count)) : MAX_PICKS
+    const key = typeof count === 'number' ? `count:${target}` : 'full'
+    const TOTAL = 80
 
-    const remaining = Array.from({ length: 80 }, (_, i) => i + 1).filter((n) => !selectedNumbers.includes(n))
-    const picked: number[] = []
-    while (picked.length < needed && remaining.length > 0) {
-      const idx = Math.floor(Math.random() * remaining.length)
-      picked.push(remaining[idx])
-      remaining.splice(idx, 1)
+    const pickUnique = (k: number): number[] => {
+      const pool = Array.from({ length: TOTAL }, (_, i) => i + 1)
+      const result: number[] = []
+      while (result.length < k && pool.length > 0) {
+        const idx = Math.floor(Math.random() * pool.length)
+        result.push(pool[idx])
+        pool.splice(idx, 1)
+      }
+      return result
     }
-    setSelectedNumbers((prev) => {
-      const next = [...prev, ...picked]
-      try { localStorage.setItem('keno_selected', JSON.stringify(next)) } catch {}
-      return next
-    })
+
+    // If clicking the same quick option and already at target, re-roll a fresh set
+    if (lastQuickKeyRef.current === key && selectedNumbers.length === target) {
+      setSelectedNumbers(pickUnique(target))
+      return
+    }
+
+    const need = target - selectedNumbers.length
+    if (need <= 0) {
+      // If we have more than target, trim down; if equal (but different key), re-roll next time
+      setSelectedNumbers((prev) => prev.slice(0, target))
+    } else {
+      const remaining = Array.from({ length: TOTAL }, (_, i) => i + 1).filter((n) => !selectedNumbers.includes(n))
+      const picked: number[] = []
+      while (picked.length < need && remaining.length > 0) {
+        const idx = Math.floor(Math.random() * remaining.length)
+        picked.push(remaining[idx])
+        remaining.splice(idx, 1)
+      }
+      setSelectedNumbers((prev) => [...prev, ...picked])
+    }
+
+    lastQuickKeyRef.current = key
   }
 
-  const onClear = () => { setSelectedNumbers([]); try { localStorage.removeItem('keno_selected') } catch {} }
+  const onClear = () => setSelectedNumbers([])
 
   const isPlaceBetDisabled = useMemo(() => selectedNumbers.length < 5 || betAmount <= 0 || !user || phaseStatus !== 'select', [selectedNumbers.length, betAmount, user, phaseStatus])
 
@@ -75,7 +92,6 @@ export default function App() {
       if (!roundId) return
       await createTicket({ roundId, numbers: selectedNumbers.slice(0, 10), betAmount })
       setLastBet({ picks: selectedNumbers.slice().sort((a, b) => a - b), amount: betAmount })
-      try { localStorage.setItem('keno_selected', JSON.stringify(selectedNumbers)) } catch {}
       // No manual draw trigger; server will broadcast automatically
       show('Bet placed for next draw', 'success')
     } finally {
@@ -87,41 +103,32 @@ export default function App() {
     (async () => {
       try {
         const cur = await getCurrentRound()
-        if (cur) setCurrentRoundId(cur._id)
-        // hydrate already-drawn numbers for persistence across reloads
-        const stored = (() => {
-          try {
-            if (!cur?._id) return null
-            const raw = localStorage.getItem(`keno_draw_${cur._id}`)
-            return raw ? (JSON.parse(raw) as { numbers?: number[]; lastSeq?: number }) : null
-          } catch {
-            return null
-          }
-        })()
-        // hydrate selected numbers
-        try {
-          const selRaw = localStorage.getItem('keno_selected')
-          const sel = selRaw ? (JSON.parse(selRaw) as number[]) : []
-          if (Array.isArray(sel) && sel.length) setSelectedNumbers(sel)
-        } catch {}
-        if (stored?.numbers?.length) {
-          setDrawnNumbers(stored.numbers)
-          if (typeof stored.lastSeq === 'number') setLastSeq(stored.lastSeq)
-        } else {
-          const already = await getCurrentDrawnNumbers(cur?._id)
+        if (cur) {
+          setCurrentRoundId(cur._id)
+          // hydrate already-drawn numbers for persistence across reloads
+          const already = await getCurrentDrawnNumbers(cur._id)
           if (already && already.length > 0) setDrawnNumbers(already)
+          // restore selected numbers scoped to round id
+          try {
+            const key = `keno:selected:${cur._id}`
+            const saved = localStorage.getItem(key)
+            if (saved) {
+              const parsed = JSON.parse(saved) as number[]
+              if (Array.isArray(parsed)) setSelectedNumbers(parsed.slice(0, MAX_PICKS))
+            }
+          } catch {}
         }
-        const sess = await getSession()
-        if (sess?.phase_ends_at) setPhaseEndsAt(new Date(sess.phase_ends_at).getTime())
       } catch {}
     })()
   }, [])
 
-  // live ticking countdown
+  // persist selected numbers
   useEffect(() => {
-    const id = window.setInterval(() => setNowTs(Date.now()), 1000)
-    return () => window.clearInterval(id)
-  }, [])
+    try {
+      if (!currentRoundId) return
+      localStorage.setItem(`keno:selected:${currentRoundId}`, JSON.stringify(selectedNumbers))
+    } catch {}
+  }, [selectedNumbers, currentRoundId])
 
   useEffect(() => {
     const s = getSocket()
@@ -130,21 +137,8 @@ export default function App() {
 
     const onDrawCompleted = async (payload: { drawn: { drawn_number: number[] }; winnings: Array<{ played_number: number[] }> }) => {
       const drawn = payload?.drawn?.drawn_number || []
-      // Clear any previous reveal timers and start fresh
-      try {
-        const ids = (timersRef as any).current as number[]
-        ids.forEach((id: number) => window.clearTimeout(id))
-        ;(timersRef as any).current = []
-      } catch {}
-      setDrawnNumbers([])
-      const intervalMs = 500; // slower reveal for a more relaxed feel
-      drawn.forEach((num, idx) => {
-        const tid = window.setTimeout(() => {
-          setDrawnNumbers((prev) => (prev.includes(num) ? prev : [...prev, num]))
-          if (selectedNumbers.includes(num)) playHit(); else playCall()
-        }, idx * intervalMs)
-        ;(timersRef as any).current.push(tid)
-      })
+      // Reconcile full set for late joiners/reloads; do not re-sequence client-side
+      setDrawnNumbers(Array.isArray(drawn) ? drawn : [])
       if (lastBet) {
         const hits = lastBet.picks.filter((n) => drawn.includes(n)).length
         const payout = hits >= 5 ? lastBet.amount * hits : 0
@@ -167,50 +161,16 @@ export default function App() {
 
     s.on('draw:completed', onDrawCompleted)
     const seen = new Set<number>()
-    const handleStart = (e: DrawStartEvent) => {
+    const handleStart = (_e: DrawStartEvent) => {
       // optional: verify sig/nonce server trust; client can also track to prevent replay in session
       seen.clear()
       setDrawnNumbers([])
-      setStreamNonce(e.nonce || null)
-      setLastSeq(-1)
-      if (currentRoundId) localStorage.removeItem(`keno_draw_${currentRoundId}`)
     }
     const handleNumber = (e: DrawNumberEvent) => {
-      // Bind to stream nonce lazily if we missed draw:start
-      if (!streamNonce) setStreamNonce(e.nonce)
-      if (streamNonce && e.nonce !== streamNonce) return
-
-      // Ignore duplicates or out-of-order old events
-      if (lastSeq >= 0 && typeof e.seq === 'number' && e.seq <= lastSeq) return
-
-      // Sequence gap detected: resync to up-to-seq state
-      if (lastSeq >= 0 && typeof e.seq === 'number' && e.seq > lastSeq + 1) {
-        if (currentRoundId) {
-          getCurrentDrawnNumbers(currentRoundId)
-            .then((nums) => {
-              if (Array.isArray(nums) && nums.length) {
-                const upto = nums.slice(0, e.seq + 1)
-                setDrawnNumbers(upto)
-                setLastSeq(e.seq)
-                try { localStorage.setItem(`keno_draw_${currentRoundId}`, JSON.stringify({ numbers: upto, lastSeq: e.seq })) } catch {}
-              }
-            })
-            .catch(() => {})
-        }
-      }
-
       if (seen.has(e.number)) return
       seen.add(e.number)
-
-      setDrawnNumbers((prev) => {
-        const next = prev.includes(e.number) ? prev : [...prev, e.number]
-        if (currentRoundId) {
-          try { localStorage.setItem(`keno_draw_${currentRoundId}`, JSON.stringify({ numbers: next, lastSeq: e.seq })) } catch {}
-        }
-        return next
-      })
-      setLastSeq(e.seq)
-      if (selectedNumbers.includes(e.number)) playHit(); else playCall()
+      setDrawnNumbers((prev) => (prev.includes(e.number) ? prev : [...prev, e.number]))
+      if (selectedRef.current.includes(e.number)) playHit(); else playCall()
     }
     onDrawStart(handleStart)
     onDrawNumber(handleNumber)
@@ -221,10 +181,12 @@ export default function App() {
           joinRoundRoom(p.roundId)
           // New round announced
           playRoundStart()
+          // clear selections for new round and reset storage scope
+          setSelectedNumbers([])
+          try { localStorage.setItem(`keno:selected:${p.roundId}`, JSON.stringify([])) } catch {}
         }
       }
       setPhaseStatus(p.status)
-      setPhaseEndsAt(typeof p.phaseEndsAt === 'string' ? new Date(p.phaseEndsAt).getTime() : new Date(p.phaseEndsAt).getTime())
     }
     s.on('phase:update', onPhase)
 
@@ -242,7 +204,7 @@ export default function App() {
         <div className="lg:col-span-2">
           {/* Mobile: called balls above grid */}
           <div className="lg:hidden">
-            <CalledBalls numbers={[...drawnNumbers].slice(0, 20)} countdownMs={phaseEndsAt ? Math.max(0, phaseEndsAt - nowTs) : undefined} />
+            <CalledBalls numbers={[...drawnNumbers].slice(0, 20)} />
           </div>
           <KenoBoard selectedNumbers={selectedNumbers} onToggleNumber={onToggleNumber} maxPicks={MAX_PICKS} drawnNumbers={drawnNumbers} />
         </div>
@@ -269,7 +231,7 @@ export default function App() {
           </div>
           {/* Desktop: called balls under bet controls */}
           <div className="mt-4 hidden lg:block">
-            <CalledBalls numbers={[...drawnNumbers].slice(0, 20)} countdownMs={phaseEndsAt ? Math.max(0, phaseEndsAt - nowTs) : undefined} />
+            <CalledBalls numbers={[...drawnNumbers].slice(0, 20)} />
           </div>
         </div>
       </div>

@@ -28,13 +28,6 @@ export async function getCurrentRound(): Promise<Round | null> {
   return parsed.data
 }
 
-export async function getSession(): Promise<{ status: 'idle' | 'select' | 'draw'; current_round_id?: string; phase_ends_at?: string } | null> {
-  const res = await apiFetch(`${API_BASE}/session`)
-  if (res.status === 404) return null
-  if (!res.ok) throw new Error('Failed to load session')
-  return res.json()
-}
-
 export async function createTicket(params: { roundId: string; numbers: number[]; betAmount: number }): Promise<Ticket> {
   const qs = new URLSearchParams()
   qs.set('round_id', params.roundId)
