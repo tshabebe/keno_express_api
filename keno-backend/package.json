@@ -4,7 +4,7 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "build": "tsc -p .",
+    "build": "tsc -p . && bun run build",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
     "prepare": "bun run build"
   },
