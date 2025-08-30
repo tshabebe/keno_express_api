@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { initDeposit, getCurrentDrawnNumbers } from '../lib/api'
 import { getSocket, onDrawNumber, offDrawNumber, onPhaseTick, offPhaseTick, type DrawNumberEvent, type PhaseTickEvent } from '../lib/socket'
 
 export default function Header() {
   const { user, balance } = useAuth()
+  const navigate = useNavigate()
   const [remainingMs, setRemainingMs] = useState<number>(0)
   const [lastNumber, setLastNumber] = useState<number | null>(null)
   const [phase, setPhase] = useState<'select' | 'draw'>('select')
@@ -77,14 +79,7 @@ export default function Header() {
         <button
           type="button"
           className="rounded-xl border border-indigo-300/20 bg-gradient-to-b from-indigo-600 to-indigo-700 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-900/30 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:from-indigo-500 hover:to-indigo-600 hover:shadow-indigo-500/25 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-          onClick={async () => {
-            try {
-              const { checkout_url } = await initDeposit(50, 'ETB')
-              if (checkout_url) window.location.href = checkout_url
-            } catch (e) {
-              console.error(e)
-            }
-          }}
+          onClick={() => navigate('/payments')}
         >
           Add Funds
         </button>

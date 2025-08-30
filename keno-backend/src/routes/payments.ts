@@ -106,6 +106,10 @@ router.post('/payments/webhook', async (req, res) => {
       return res.status(500).json({ error: 'wallet credit failed' })
     }
     await Transaction.updateOne({ tx_ref }, { $set: { status: 'completed', verified: true, updated_at: new Date() } })
+    try {
+      const io = req.app.locals.io as any
+      io?.to(`lobby:user:${tx.user_id}`).emit('payment:status', { type: 'deposit', provider: 'chapa', tx_ref, status: 'completed', amount })
+    } catch {}
     return res.json({ ok: true })
   } catch (e) {
     console.error('webhook error', e)

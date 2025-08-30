@@ -53,3 +53,17 @@ export function offPhaseTick(handler: (e: PhaseTickEvent) => void) {
   getSocket().off('phase:tick', handler)
 }
 
+// User-specific room for payment status
+export function joinUserRoom(userId: string) {
+  const s = getSocket()
+  s.emit('user:join', userId)
+}
+
+export type PaymentStatusEvent = { type: 'deposit' | 'withdraw'; provider: 'chapa' | 'lakipay'; tx_ref: string; status: 'pending' | 'redirect' | 'completed' | 'failed' | 'error'; amount?: number }
+export function onPaymentStatus(handler: (e: PaymentStatusEvent) => void) {
+  getSocket().on('payment:status', handler)
+}
+export function offPaymentStatus(handler: (e: PaymentStatusEvent) => void) {
+  getSocket().off('payment:status', handler)
+}
+

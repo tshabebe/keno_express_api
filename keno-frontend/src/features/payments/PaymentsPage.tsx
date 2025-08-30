@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getPaymentOptions, initDeposit, initLakipayDeposit, withdrawChapa, withdrawLakipay, type PaymentOptions } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
+import { useAuth } from '../../context/AuthContext'
+import { joinUserRoom, onPaymentStatus, offPaymentStatus, type PaymentStatusEvent } from '../../lib/socket'
 
 export default function PaymentsPage() {
   const { show } = useToast()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [opts, setOpts] = useState<PaymentOptions | null>(null)
   const [tab, setTab] = useState<'deposit' | 'withdraw'>('deposit')
@@ -29,6 +32,17 @@ export default function PaymentsPage() {
         show(e?.message || 'Failed to load payment options', 'error')
       }
     })()
+    if (user?.id) joinUserRoom(String(user.id))
+    const handler = (e: PaymentStatusEvent) => {
+      if (e.status === 'pending') show('Payment pending…', 'info')
+      if (e.status === 'redirect') show('Redirecting to payment…', 'info')
+      if (e.status === 'completed') show('Payment completed', 'success')
+      if (e.status === 'failed' || e.status === 'error') show(e ? `${e.provider} ${e.type} failed` : 'Payment failed', 'error')
+    }
+    onPaymentStatus(handler)
+    return () => {
+      offPaymentStatus(handler)
+    }
   }, [])
 
   const onDeposit = async () => {

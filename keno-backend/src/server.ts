@@ -75,6 +75,12 @@ io.on('connection', (socket) => {
   });
   // join global keno room by default
   socket.join('lobby:global');
+  // user-specific room for payment status and personal events
+  socket.on('user:join', (userId: string) => {
+    if (typeof userId === 'string' && userId) {
+      socket.join(`lobby:user:${userId}`);
+    }
+  });
 });
 
 // Global session scheduler
