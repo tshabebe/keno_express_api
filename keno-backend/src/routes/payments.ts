@@ -38,35 +38,79 @@ router.post('/payments/init', authRequired, async (req, res) => {
 
 router.post('/payments/webhook', async (req, res) => {
   try {
-    const rawBody = (req as any).rawBody ?? (req.body?.toString ? req.body.toString('utf8') : '');
-    const secret = process.env.WEBHOOK_SECRET || '';
-    const hash = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-    const sig = (req.headers['chapa-signature'] || req.headers['Chapa-Signature'] || req.headers['x-chapa-signature'] || req.headers['X-Chapa-Signature']) as string | undefined;
-    if (!sig || sig !== hash) return res.status(401).json({ error: 'invalid signature' });
+    const debugId = Math.random().toString(36).slice(2, 8)
+    const secret = process.env.WEBHOOK_SECRET || ''
+    if (!secret) {
+      console.error(`[webhook ${debugId}] missing WEBHOOK_SECRET env`)
+      return res.status(401).json({ error: 'signature verification not configured' })
+    }
 
-    const body = JSON.parse(rawBody || '{}');
-    const tx_ref = body?.tx_ref as string | undefined;
-    const amount = Number(body?.amount || 0);
-    if (!tx_ref) return res.status(400).json({ error: 'missing tx_ref' });
+    let rawBody = ''
+    try {
+      if (Buffer.isBuffer((req as any).body)) rawBody = (req as any).body.toString('utf8')
+      else if (typeof (req as any).rawBody === 'string') rawBody = (req as any).rawBody
+      else if (typeof req.body === 'string') rawBody = req.body
+      else rawBody = JSON.stringify(req.body || {})
+    } catch (e) {
+      console.error(`[webhook ${debugId}] failed to extract raw body`, e)
+      return res.status(400).json({ error: 'invalid raw body' })
+    }
 
-    const chapa = new Chapa({ secretKey: process.env.CHAPA_AUTH_KEY as string });
-    const verify = await chapa.verify({ tx_ref });
-    if (verify?.status !== 'success') return res.status(400).json({ error: 'verification failed' });
+    const computed = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
+    const headerSigRaw = (req.headers['x-chapa-signature'] || req.headers['chapa-signature'] || req.headers['Chapa-Signature'] || req.headers['X-Chapa-Signature']) as string | undefined
+    const headerSig = typeof headerSigRaw === 'string' ? headerSigRaw.trim().toLowerCase() : ''
+    const computedLc = computed.toLowerCase()
+    if (!headerSig) {
+      console.error(`[webhook ${debugId}] missing signature header`)
+      return res.status(401).json({ error: 'missing signature' })
+    }
+    if (headerSig !== computedLc) {
+      console.error(`[webhook ${debugId}] signature mismatch`, {
+        headerSig: headerSig.slice(0, 8) + '...',
+        computed: computedLc.slice(0, 8) + '...',
+        length: rawBody.length,
+      })
+      return res.status(401).json({ error: 'invalid signature' })
+    }
 
-    const tx = await Transaction.findOne({ tx_ref });
-    if (!tx) return res.status(404).json({ error: 'tx not found' });
-    if (tx.verified) return res.json({ ok: true });
+    let body: any
+    try {
+      body = JSON.parse(rawBody || '{}')
+    } catch (e) {
+      console.error(`[webhook ${debugId}] JSON parse error`, e)
+      return res.status(400).json({ error: 'invalid json' })
+    }
+    const tx_ref = body?.tx_ref as string | undefined
+    const amount = Number(body?.amount || 0)
+    if (!tx_ref) return res.status(400).json({ error: 'missing tx_ref' })
 
-    // credit user, mark verified
-    await User.updateOne({ _id: tx.user_id }, { $inc: { wallet_balance: amount } });
-    await Transaction.updateOne({ tx_ref }, { $set: { status: 'completed', verified: true, updated_at: new Date() } });
-    return res.json({ ok: true });
+    const chapa = new Chapa({ secretKey: process.env.CHAPA_AUTH_KEY as string })
+    const verify = await chapa.verify({ tx_ref })
+    if (verify?.status !== 'success') {
+      console.error(`[webhook ${debugId}] verify failed`, { tx_ref, status: verify?.status })
+      return res.status(400).json({ error: 'verification failed' })
+    }
+
+    const tx = await Transaction.findOne({ tx_ref })
+    if (!tx) {
+      console.error(`[webhook ${debugId}] tx not found`, { tx_ref })
+      return res.status(404).json({ error: 'tx not found' })
+    }
+    if (tx.verified) return res.json({ ok: true })
+
+    try {
+      await User.updateOne({ _id: tx.user_id }, { $inc: { wallet_balance: amount } })
+    } catch (e) {
+      console.error(`[webhook ${debugId}] wallet credit error`, e)
+      return res.status(500).json({ error: 'wallet credit failed' })
+    }
+    await Transaction.updateOne({ tx_ref }, { $set: { status: 'completed', verified: true, updated_at: new Date() } })
+    return res.json({ ok: true })
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('webhook error', e);
-    return res.status(500).json({ error: 'webhook failed' });
+    console.error('webhook error', e)
+    return res.status(500).json({ error: 'webhook failed', detail: e instanceof Error ? e.message : String(e) })
   }
-});
+})
 
 export default router;
 
