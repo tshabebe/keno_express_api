@@ -4,7 +4,7 @@ const UserSchema = new Schema({
   phone_number: { type: String, required: true, unique: true, index: true },
   password_hash: { type: String, required: true },
   display_name: { type: String, required: true },
-  wallet_balance: { type: Number, required: true, default: 1000 },
+  wallet_balance: { type: Number, required: true, default: 0 },
   created_at: { type: Date, default: () => new Date() }
 });
 

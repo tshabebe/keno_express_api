@@ -80,6 +80,36 @@ export async function getSession(): Promise<{ status: 'idle' | 'select' | 'draw'
   return res.json()
 }
 
+// Payments UI helpers
+export type PaymentOptions = {
+  chapa: { banks: Array<{ id: string; name: string; code: string; type?: string }> }
+  lakipay: { mediums: string[] }
+}
+
+export async function getPaymentOptions(): Promise<PaymentOptions> {
+  const res = await apiFetch(`${API_BASE}/payments/options`)
+  if (!res.ok) throw new Error('Failed to load payment options')
+  return res.json()
+}
+
+export async function initLakipayDeposit(amount: number, phone: string): Promise<{ tx_ref: string; lakipay: any }> {
+  const res = await apiFetch(`${API_BASE}/payments/lakipay/init`, { method: 'POST', body: JSON.stringify({ amount, phone }) })
+  if (!res.ok) throw new Error('Failed to init lakipay')
+  return res.json()
+}
+
+export async function withdrawChapa(payload: { amount: number; account_number: string; account_name: string; bank_code: string; currency?: string }) {
+  const res = await apiFetch(`${API_BASE}/payments/chapa/withdraw`, { method: 'POST', body: JSON.stringify(payload) })
+  if (!res.ok) throw new Error('Failed to withdraw via chapa')
+  return res.json()
+}
+
+export async function withdrawLakipay(payload: { amount: number; phone: string; medium?: string }) {
+  const res = await apiFetch(`${API_BASE}/payments/lakipay/withdraw`, { method: 'POST', body: JSON.stringify(payload) })
+  if (!res.ok) throw new Error('Failed to withdraw via lakipay')
+  return res.json()
+}
+
 function indexToParam(index: number): string {
   const map = [
     'number_one',

@@ -101,6 +101,15 @@ router.post('/drawnings', authRequired, async (req, res) => {
     const io = req.app.locals.io as SocketIOServer | undefined;
     io?.to(`lobby:${roundIdRaw}`).emit('draw:completed', final);
   } catch {}
+  try {
+    winnings.forEach((t: any) => {
+      const hits = _.intersection(drawn!.drawn_number, t.played_number).length;
+      const picks = Math.min(10, t.played_number.length || 0);
+      const mult = getPayoutMultiplier(picks, hits);
+      const amt = (t.bet_amount || 0) * mult;
+      console.log('[txn win] payout', { user_id: t.user_id, round_id: roundIdRaw, hits, picks, multiplier: mult, bet: t.bet_amount, payout: amt })
+    })
+  } catch {}
   res.json(final);
 });
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './features/auth/LoginPage'
 import RegisterPage from './features/auth/RegisterPage'
+import PaymentsPage from './features/payments/PaymentsPage'
 import Layout from './components/Layout'
 import KenoBoard from './features/keno/KenoBoard'
 import BetControls from './features/keno/BetControls'
@@ -282,6 +283,7 @@ export default function App() {
       <Route path="/keno" element={user ? Main : <Navigate to="/login" replace />} />
       <Route path="/login" element={user ? <Navigate to="/keno" replace /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/keno" replace /> : <RegisterPage />} />
+      <Route path="/payments" element={user ? <PaymentsPage /> : <Navigate to="/login" replace />} />
     </Routes>
   )
 }

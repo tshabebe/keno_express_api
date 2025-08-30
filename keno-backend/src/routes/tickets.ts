@@ -45,6 +45,9 @@ router.post('/tickets', authRequired, async (req, res) => {
 
   const result = await Ticket.create(ticket);
   try {
+    console.log('[txn bet] create_ticket', { user_id: userId, round_id: roundIdRaw, bet_amount: betAmount, picks: played_number })
+  } catch {}
+  try {
     const io = req.app.locals.io as SocketIOServer | undefined;
     io?.to(`lobby:${ticket.round_id || ''}`).emit('ticket:created', { id: String(result._id), ...ticket });
   } catch {}
