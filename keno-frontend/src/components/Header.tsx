@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { initDeposit, getCurrentDrawnNumbers } from '../lib/api'
+import { getCurrentDrawnNumbers } from '../lib/api'
 import { getSocket, onDrawNumber, offDrawNumber, onPhaseTick, offPhaseTick, type DrawNumberEvent, type PhaseTickEvent } from '../lib/socket'
 
 export default function Header() {

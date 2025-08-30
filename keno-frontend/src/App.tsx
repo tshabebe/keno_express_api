@@ -283,7 +283,7 @@ export default function App() {
       <Route path="/keno" element={user ? Main : <Navigate to="/login" replace />} />
       <Route path="/login" element={user ? <Navigate to="/keno" replace /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/keno" replace /> : <RegisterPage />} />
-      <Route path="/payments" element={user ? <PaymentsPage /> : <Navigate to="/login" replace />} />
+      <Route path="/payments" element={user ? <Layout><PaymentsPage /></Layout> : <Navigate to="/login" replace />} />
     </Routes>
   )
 }
