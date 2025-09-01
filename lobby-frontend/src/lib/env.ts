@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 const EnvSchema = z.object({
   VITE_API_BASE_URL: z.string().url().optional(),
-  VITE_SOCKET_URL: z.string().url().optional()
+  VITE_SOCKET_URL: z.string().url().optional(),
+  VITE_KENO_URL: z.string().url().optional(),
 })
 
 export const env = (() => {
@@ -13,5 +14,6 @@ export const env = (() => {
 
 export const getApiBaseUrl = () => env.VITE_API_BASE_URL || 'http://localhost:3000'
 export const getSocketUrl = () => env.VITE_SOCKET_URL || env.VITE_API_BASE_URL || 'http://localhost:3000'
+export const getKenoBaseUrl = () => env.VITE_KENO_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
 
 

@@ -1,6 +1,6 @@
 // Lobbies removed
 import { useEffect, useMemo, useState } from 'react'
-import { getApiBaseUrl } from '../../lib/env'
+import { getKenoBaseUrl } from '../../lib/env'
 import { useAuth } from '../../context/AuthContext'
 import Card from '../../components/Card'
 
@@ -12,7 +12,7 @@ type GameInfo = {
 }
 
 const ALL_GAMES: GameInfo[] = (() => {
-  const kenoBase = (typeof window !== 'undefined' && (window as any).VITE_KENO_URL) || getApiBaseUrl().replace('3000', '5173')
+  const kenoBase = getKenoBaseUrl()
   const kenoUrl = `${kenoBase.replace(/\/$/, '')}/keno`
   return [
     { id: 'keno', name: 'Keno', description: 'Classic Keno game', path: kenoUrl },
