@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { AuthResponse } from '../lib/auth'
-import { restoreAuth } from '../lib/auth'
+import { restoreAuth, getMe } from '../lib/auth'
 import { setAuthToken } from '../lib/http'
 
 type AuthContextType = {
@@ -19,16 +19,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [balance, setBalance] = useState<number>(0)
 
   useEffect(() => {
-    const restored = restoreAuth()
-    if (restored) {
-      setUser(restored.user)
-      setToken(restored.token)
-      setBalance(restored.user.balance ?? 0)
-      setAuthToken(restored.token)
-    }
-  }, [])
+    (async () => {
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const urlToken = params.get('token')
+        if (urlToken) {
+          setAuthToken(urlToken)
+          const me = await getMe().catch(() => null)
+          if (me) {
+            const auth: AuthResponse = { token: urlToken, user: { id: me.id, displayName: me.displayName, balance: me.balance } }
+            setUser(auth.user)
+            setToken(auth.token)
+            setBalance(auth.user.balance ?? 0)
+            try { localStorage.setItem('auth', JSON.stringify(auth)) } catch {}
+          }
+          // clean token from URL
+          try { window.history.replaceState({}, document.title, window.location.pathname) } catch {}
+          return
+        }
+      } catch {}
 
-  // URL token handling removed; rely on local login/register only
+      const restored = restoreAuth()
+      if (restored) {
+        setUser(restored.user)
+        setToken(restored.token)
+        setBalance(restored.user.balance ?? 0)
+        setAuthToken(restored.token)
+      }
+    })()
+  }, [])
 
   const setSession = (auth: AuthResponse) => {
     setUser(auth.user)

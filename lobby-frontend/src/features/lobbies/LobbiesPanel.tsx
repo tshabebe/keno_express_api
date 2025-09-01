@@ -1,6 +1,7 @@
 // Lobbies removed
 import { useEffect, useMemo, useState } from 'react'
 import { getApiBaseUrl } from '../../lib/env'
+import { useAuth } from '../../context/AuthContext'
 
 type GameInfo = {
   id: string
@@ -18,6 +19,7 @@ const ALL_GAMES: GameInfo[] = (() => {
 })()
 
 export default function LobbiesPanel() {
+  const { token } = useAuth()
   const [query, setQuery] = useState('')
   const [games, setGames] = useState<GameInfo[]>(ALL_GAMES)
 
@@ -27,7 +29,11 @@ export default function LobbiesPanel() {
     setGames(ALL_GAMES.filter(g => g.name.toLowerCase().includes(q) || g.description.toLowerCase().includes(q)))
   }, [query])
 
-  const onOpen = (g: GameInfo) => { window.location.href = g.path }
+  const onOpen = (g: GameInfo) => {
+    const url = new URL(g.path)
+    if (token) url.searchParams.set('token', token)
+    window.location.href = url.toString()
+  }
 
   const list = useMemo(() => games, [games])
 
