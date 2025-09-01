@@ -2,14 +2,16 @@ import { Routes, Route, Navigate, Link } from 'react-router-dom'
 import Layout from './components/Layout'
 import { useEffect, useState } from 'react'
 import Card from './components/Card'
+import { getApiBaseUrl } from './lib/env'
 
 function Login({ onOk }: { onOk: () => void }) {
+  const API = getApiBaseUrl()
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const submit = async () => {
     setError('')
-    const res = await fetch('http://localhost:3000/admin/login', {
+    const res = await fetch(`${API}/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -29,13 +31,14 @@ function Login({ onOk }: { onOk: () => void }) {
 }
 
 function Dashboard() {
+  const API = getApiBaseUrl()
   const [stats, setStats] = useState<{ users: number; income: number }>({ users: 0, income: 0 })
   useEffect(() => {
     (async () => {
       try {
         const [u, i] = await Promise.all([
-          fetch('http://localhost:3000/admin/stats/users', { credentials: 'include' }).then(r => r.json()).catch(() => ({ totalUsers: 0 })),
-          fetch('http://localhost:3000/admin/stats/income', { credentials: 'include' }).then(r => r.json()).catch(() => ({ totalIncome: 0 })),
+          fetch(`${API}/admin/stats/users`, { credentials: 'include' }).then(r => r.json()).catch(() => ({ totalUsers: 0 })),
+          fetch(`${API}/admin/stats/income`, { credentials: 'include' }).then(r => r.json()).catch(() => ({ totalIncome: 0 })),
         ])
         setStats({ users: Number(u?.totalUsers || 0), income: Number(i?.totalIncome || 0) })
       } catch {}
@@ -77,6 +80,7 @@ function Dashboard() {
 }
 
 function KenoConfigPage() {
+  const API = getApiBaseUrl()
   const [rows, setRows] = useState<Array<{ picks: string; payout: string }>>([
     { picks: '5', payout: '2' },
     { picks: '6', payout: '4' },
@@ -92,7 +96,7 @@ function KenoConfigPage() {
       payouts[k] = v
     }
     setMsg('')
-    const res = await fetch('http://localhost:3000/admin/configs/keno', {
+    const res = await fetch(`${API}/admin/configs/keno`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
