@@ -18,7 +18,7 @@ import { playRoundStart, playCall, playHit } from './lib/sound'
 const MAX_PICKS = 10
 
 export default function App() {
-  const { user, balance: ctxBalance, setBalance } = useAuth()
+  const { user, balance: ctxBalance, setBalance, ready } = useAuth()
   const { show } = useToast()
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
   const [betAmount, setBetAmount] = useState<number>(1)
@@ -277,6 +277,7 @@ export default function App() {
 
   // removed unused Loading view; login route handles unauthenticated state
 
+  if (!ready) return null
   return (
     <Routes>
       <Route path="/" element={user ? Main : <Navigate to="/login" replace />} />

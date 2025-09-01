@@ -3,8 +3,27 @@ import bcrypt from 'bcryptjs'
 import User from '../models/user'
 import { adminRequired, signAdminToken } from '../middleware/auth'
 import GameConfig from '../models/game_config'
+import { Transaction } from '../models/transaction'
 
 const router = Router()
+
+// One-time bootstrap endpoint to create the first admin
+// Requires ADMIN_BOOTSTRAP_SECRET env var to match provided secret
+router.post('/admin/bootstrap', async (req, res) => {
+  const { phoneNumber, password, displayName } = (req.body || {}) as { phoneNumber?: string; password?: string; displayName?: string }
+
+  const existingAdmin = await User.findOne({ role: 'admin' })
+  if (existingAdmin) return res.status(409).json({ error: 'admin already exists' })
+
+  if (!phoneNumber || !password) return res.status(400).json({ error: 'phone and password required' })
+  const phone = typeof phoneNumber === 'string' ? phoneNumber.replace(/\s+/g, '') : ''
+  const existsPhone = await User.findOne({ phone_number: phone })
+  if (existsPhone) return res.status(409).json({ error: 'phone in use' })
+
+  const hash = await bcrypt.hash(password, 10)
+  const user = await User.create({ phone_number: phone, password_hash: hash, display_name: (displayName || phone), role: 'admin' })
+  return res.json({ ok: true, admin: { id: user._id, displayName: user.display_name, phoneNumber: user.phone_number } })
+})
 
 router.post('/admin/login', async (req, res) => {
   const { phoneNumber, password } = (req.body || {}) as { phoneNumber?: string; password?: string }
@@ -61,6 +80,19 @@ router.get('/games/:game/config', async (req, res) => {
   res.json(cfg ? { game: cfg.game, version: cfg.version, data: cfg.data } : { game, version: 0, data: {} })
 })
 
-export default router
+// Stats endpoints (simple aggregates)
+router.get('/admin/stats/users', adminRequired, async (_req, res) => {
+  const total = await User.countDocuments()
+  res.json({ totalUsers: total })
+})
 
+router.get('/admin/stats/income', adminRequired, async (_req, res) => {
+  const agg = await Transaction.aggregate([
+    { $match: { status: 'completed', type: 'deposit' } },
+    { $group: { _id: null, total: { $sum: { $ifNull: ['$amount', 0] } } } }
+  ])
+  res.json({ totalIncome: agg[0]?.total || 0 })
+})
+
+export default router
 

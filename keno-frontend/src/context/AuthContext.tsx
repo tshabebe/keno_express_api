@@ -9,6 +9,7 @@ type AuthContextType = {
   balance: number
   setBalance: (value: number) => void
   setSession: (auth: AuthResponse) => void
+  ready: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -17,6 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthResponse['user'] | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [balance, setBalance] = useState<number>(0)
+  const [ready, setReady] = useState<boolean>(false)
 
   useEffect(() => {
     (async () => {
@@ -35,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           // clean token from URL
           try { window.history.replaceState({}, document.title, window.location.pathname) } catch {}
+          setReady(true)
           return
         }
       } catch {}
@@ -46,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setBalance(restored.user.balance ?? 0)
         setAuthToken(restored.token)
       }
+      setReady(true)
     })()
   }, [])
 
@@ -63,7 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     balance,
     setBalance,
     setSession,
-  }), [user, token, balance])
+    ready,
+  }), [user, token, balance, ready])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

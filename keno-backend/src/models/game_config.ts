@@ -1,7 +1,7 @@
 import mongoose, { Schema, type Model, type InferSchemaType, type HydratedDocument } from 'mongoose';
 
 const GameConfigSchema = new Schema({
-  game: { type: String, required: true, index: true },
+  game: { type: String, required: true },
   version: { type: Number, required: true, default: 1 },
   data: { type: Schema.Types.Mixed, required: true },
   updated_by: { type: Schema.Types.ObjectId, ref: 'User' },
