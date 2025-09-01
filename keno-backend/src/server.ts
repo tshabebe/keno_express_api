@@ -28,7 +28,13 @@ const server = http.createServer(app);
 const io = new SocketIOServer(server, { cors: { origin: '*'} });
 app.locals.io = io;
 
-app.use(cors({ origin: [/^http:\/\/localhost:5173$/, /^http:\/\/localhost:5174$/, /^http:\/\/localhost:5175$/], credentials: true }));
+// Allow all origins while preserving credentials by reflecting the request origin
+app.use(cors({
+  origin: (_origin, callback) => callback(null, true),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(morgan('dev'));
 // Raw body for webhook signature verification
 app.use('/payments/webhook', express.raw({ type: 'application/json' }));
