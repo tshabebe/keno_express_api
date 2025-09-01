@@ -3,17 +3,26 @@
   "private": true,
   "workspaces": [
     "keno-frontend",
+    "lobby-frontend",
+    "admin-frontend",
     "keno-backend",
     "shared"
   ],
   "scripts": {
     "build": "npm run -ws build",
-    "dev": "concurrently -n FRONTEND,BACKEND -c \"#4FC3F7,#81C784\" \"npm --workspace keno-frontend run dev\" \"npm --workspace keno-backend run dev\"",
+    "dev": "concurrently -n LOBBY,FRONTEND,ADMIN,BACKEND -c \"#FFC107,#4FC3F7,#9C27B0,#81C784\" \"npm --workspace lobby-frontend run dev -- --port 5174 --open\" \"npm --workspace keno-frontend run dev -- --open\" \"npm --workspace admin-frontend run dev -- --port 5175 --open\" \"npm --workspace keno-backend run dev\"",
+    "dev:lobby": "npm --workspace lobby-frontend run dev -- --port 5174 --open",
+    "dev:frontend": "npm --workspace keno-frontend run dev -- --open",
+    "dev:admin": "npm --workspace admin-frontend run dev -- --port 5175 --open",
+    "dev:backend": "npm --workspace keno-backend run dev",
     "lint": "npm run -ws lint --if-present",
-    "clean": "npm run -ws clean --if-present"
+    "clean": "npm run -ws clean --if-present",
+    "test:e2e": "concurrently -n LOBBY,FRONTEND -c \"#FFC107,#4FC3F7\" \"npm --workspace lobby-frontend run dev -- --port 5174\" \"npm --workspace keno-frontend run dev\" & sleep 5 && playwright install chromium && playwright test --project=chromium",
+    "test:e2e:servers": "concurrently -n LOBBY,FRONTEND -c \"#FFC107,#4FC3F7\" \"npm --workspace lobby-frontend run dev -- --port 5174\" \"npm --workspace keno-frontend run dev\""
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@playwright/test": "^1.48.2",
+    "concurrently": "^8.2.2",
+    "start-server-and-test": "^2.0.13"
   }
 }
-

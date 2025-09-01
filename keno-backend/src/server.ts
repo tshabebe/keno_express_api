@@ -8,6 +8,7 @@ import roundsRouter from './routes/rounds';
 import ticketsRouter from './routes/tickets';
 import drawningsRouter from './routes/drawnings';
 import usersRouter from './routes/users';
+import adminRouter from './routes/admin';
 import matchmakingRouter from './routes/matchmaking';
 import paymentsRouter from './routes/payments';
 import sessionRouter from './routes/session';
@@ -27,7 +28,7 @@ const server = http.createServer(app);
 const io = new SocketIOServer(server, { cors: { origin: '*'} });
 app.locals.io = io;
 
-app.use(cors());
+app.use(cors({ origin: [/^http:\/\/localhost:5173$/, /^http:\/\/localhost:5174$/, /^http:\/\/localhost:5175$/], credentials: true }));
 app.use(morgan('dev'));
 // Raw body for webhook signature verification
 app.use('/payments/webhook', express.raw({ type: 'application/json' }));
@@ -48,6 +49,7 @@ app.use('/', usersRouter);
 app.use('/', matchmakingRouter);
 app.use('/', paymentsRouter);
 app.use('/', sessionRouter);
+app.use('/', adminRouter);
 
 app.get('/', (_req, res) => {
   res.json({ name: 'Keno API', status: 'ok' });

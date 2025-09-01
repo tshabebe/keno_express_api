@@ -5,6 +5,7 @@ const UserSchema = new Schema({
   password_hash: { type: String, required: true },
   display_name: { type: String, required: true },
   wallet_balance: { type: Number, required: true, default: 0 },
+  role: { type: String, enum: ['user', 'admin'], default: 'user', index: true },
   created_at: { type: Date, default: () => new Date() }
 });
 
