@@ -30,32 +30,7 @@ export default function App() {
   const [phaseStatus, setPhaseStatus] = useState<'idle' | 'select' | 'draw'>('idle')
   const selectedRef = useRef<number[]>([])
   useEffect(() => { selectedRef.current = selectedNumbers }, [selectedNumbers])
-  const clearTimerRef = useRef<number | null>(null)
   const [hideDrawnMarks, setHideDrawnMarks] = useState<boolean>(false)
-
-  const scheduleBoardClearAtTMinus10 = (phaseEndsAt?: string | Date) => {
-    try {
-      if (clearTimerRef.current) window.clearTimeout(clearTimerRef.current)
-    } catch {}
-    if (!phaseEndsAt) return
-    const endMs = new Date(phaseEndsAt).getTime()
-    const nowMs = Date.now()
-    const fireIn = endMs - nowMs - 10000 // 10 seconds before next draw
-    const clearNow = fireIn <= 0
-    const doClear = () => {
-      setHideDrawnMarks(true)
-      setDrawnNumbers([])
-      setSelectedNumbers([])
-      if (currentRoundId) {
-        try { localStorage.setItem(`keno:selected:${currentRoundId}`, JSON.stringify([])) } catch {}
-      }
-    }
-    if (clearNow) {
-      doClear()
-    } else {
-      clearTimerRef.current = window.setTimeout(doClear, fireIn)
-    }
-  }
 
   const onToggleNumber = (value: number) => {
     // Hide previous draw marks as soon as user starts selecting
@@ -188,9 +163,13 @@ export default function App() {
     s.on('draw:completed', onDrawCompleted)
     const seen = new Set<number>()
     const handleStart = (_e: DrawStartEvent) => {
-      // optional: verify sig/nonce server trust; client can also track to prevent replay in session
+      // Clear board when new draw starts - better UX
       seen.clear()
       setDrawnNumbers([])
+      setSelectedNumbers([])
+      if (currentRoundId) {
+        try { localStorage.setItem(`keno:selected:${currentRoundId}`, JSON.stringify([])) } catch {}
+      }
       // Show draw marks during draw
       setHideDrawnMarks(false)
     }
@@ -209,19 +188,12 @@ export default function App() {
           joinRoundRoom(p.roundId)
           // New round announced
           playRoundStart()
-          // do not clear immediately; we will clear at T-10s in the upcoming select phase
         }
       }
       setPhaseStatus(p.status)
-      // During select, schedule board clear at T-10s to allow players to review results
+      // During select phase, show previous draw marks so players can review results
       if (p.status === 'select') {
-        // Show previous draw marks at start of select, then hide/clear at T-10
         setHideDrawnMarks(false)
-        scheduleBoardClearAtTMinus10(p.phaseEndsAt)
-      }
-      if (p.status === 'draw' && clearTimerRef.current) {
-        try { window.clearTimeout(clearTimerRef.current) } catch {}
-        clearTimerRef.current = null
       }
     }
     s.on('phase:update', onPhase)
