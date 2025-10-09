@@ -237,13 +237,11 @@ export default function App() {
   const Main = (
     <Layout>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          {/* Mobile: called balls above grid */}
           <div className="lg:hidden">
             <CalledBalls numbers={[...drawnNumbers].slice(0, 20)} />
           </div>
+          {/* Mobile: called balls above grid */}
           <KenoBoard selectedNumbers={selectedNumbers} onToggleNumber={onToggleNumber} maxPicks={MAX_PICKS} drawnNumbers={drawnNumbers} disabled={phaseStatus !== 'select'} hideDrawn={hideDrawnMarks} />
-        </div>
         <div className="lg:col-span-1">
           <BetControls
             selectedNumbers={selectedNumbers}

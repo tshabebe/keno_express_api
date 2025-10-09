@@ -4,7 +4,7 @@ type CalledBallsProps = {
 
 export default function CalledBalls({ numbers }: CalledBallsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900/80 to-slate-900/50 shadow-xl backdrop-blur-xl p-3">
       {numbers.map((n, idx) => (
         <div
           key={`${n}-${idx}`}
