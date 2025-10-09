@@ -163,13 +163,18 @@ export default function App() {
     s.on('draw:completed', onDrawCompleted)
     const seen = new Set<number>()
     const handleStart = (_e: DrawStartEvent) => {
-      // Clear board when new draw starts - better UX
+      // Clear drawn numbers when new draw starts
       seen.clear()
       setDrawnNumbers([])
-      setSelectedNumbers([])
-      if (currentRoundId) {
-        try { localStorage.setItem(`keno:selected:${currentRoundId}`, JSON.stringify([])) } catch {}
-      }
+      
+      // DON'T clear selected numbers automatically
+      // Let user keep their selections to reuse across rounds
+      // They can click "Clear" button if they want to start fresh
+      // This helps users who:
+      // - Picked numbers but didn't bet in time
+      // - Want to play same numbers repeatedly
+      // - Need to reload page mid-game
+      
       // Show draw marks during draw
       setHideDrawnMarks(false)
     }
